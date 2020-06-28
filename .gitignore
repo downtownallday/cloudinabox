@@ -1,0 +1,4 @@
+.vagrant
+*-console.log
+**~
+**/__pycache__/**

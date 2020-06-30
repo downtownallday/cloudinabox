@@ -107,7 +107,20 @@ else
     fi
     return 0
 }
-        
+
+
+move_config_to_user_data() {
+    if [ ! -e "$STORAGE_ROOT/nextcloud/config" ]; then
+        mv "$NCDIR/config" "$STORAGE_ROOT/nextcloud" \
+            || die "Could not move $NCDIR/config to $STORAGE_ROOT/nextcloud"
+    fi
+
+    rm -rf "$NCDIR/config"
+    
+    ln -sf "$STORAGE_ROOT/nextcloud/config" "$NCDIR/config" \
+        || die "Could not link $NCDIR/config -> $STORAGE_ROOT/nextcloud/config"
+}
+
 
 install_nextcloud() {
     mkdir -p "$NCDATA" || die "Could not create $NCDATA"
@@ -117,27 +130,31 @@ install_nextcloud() {
     local installed=1
     local errors=()
 
+    # relocate nextcloud/config to user-data/nextcloud/config
+    move_config_to_user_data
+    
     if [ ! -e "$NCDIR/config/config.php" ]; then
         installed=0
     else
+        # get installed state
         get_config_value installed 0
         installed=$VALUE
     fi
 
     if [ $installed -eq 0 ]; then
         say_verbose "Running Nextcloud installation"
-        #echo sudo -E -u www-data php $NCDIR/occ  maintenance:install -vvv --database \"mysql\" --database-name \"$NC_SQL_DB\"  --database-user \"$NC_SQL_USER\" --database-pass "\"$NC_SQL_PASSWORD\"" --admin-user \"admin\" --admin-pass "\"$SQL_ROOT_PASSWORD\"" --data-dir \"$NCDATA\"
+        #echo sudo -E -u www-data php $NCDIR/occ  maintenance:install -vvv --database \"mysql\" --database-name \"$NC_SQL_DB\"  --database-user \"$NC_SQL_USER\" --database-pass "\"$NC_SQL_PASSWORD\"" --admin-user \"admin\" --admin-pass "\"$SQL_ROOT_PASSWORD\"" --data-dir \"$NCDATA\"        
         sudo -E -u www-data php $NCDIR/occ  maintenance:install --database "mysql" --database-name "$NC_SQL_DB"  --database-user "$NC_SQL_USER" --database-pass "$NC_SQL_PASSWORD" --admin-user "admin" --admin-pass "$SQL_ROOT_PASSWORD" --data-dir "$NCDATA"
         if [ $? -ne 0 ]; then
-            die "Nextcloud occ installed failed"
+            die "Nextcloud occ maintenance:install failed"
         fi
 
         cat >$STORAGE_ROOT/nextcloud/ciab_nextcloud.conf <<EOF
 NC_ADMIN_USER=admin
 NC_ADMIN_PASSWORD='$SQL_ROOT_PASSWORD'
 EOF
-        chmod 600 $STORAGE_ROOT/nextcloud/ciab_nextcloud.conf
-        
+        chmod 600 $STORAGE_ROOT/nextcloud/ciab_nextcloud.conf    
+
         # additional occ commands
         sudo -E -u www-data php $NCDIR/occ maintenance:update:htaccess -q
         [ $? -ne 0 ] && errors+=("occ maintenance:update:htaccess failed")
@@ -152,6 +169,8 @@ EOF
 
     else
         # maintenance / recovery commands
+        sudo -E -u www-data php $NCDIR/occ maintenance:mode --off
+        [ $? -ne 0 ] && errors+=("occ maintenance:mode --off failed")
         sudo -E -u www-data php $NCDIR/occ maintenance:repair -q
         [ $? -ne 0 ] && errors+=("occ maintenance:repair failed")
         sudo -E -u www-data php $NCDIR/occ db:add-missing-indices -q
@@ -159,6 +178,7 @@ EOF
         sudo -E -u www-data php $NCDIR/occ files:scan --all
         [ $? -ne 0 ] && errors+=("occ files:scan --all failed")
     fi
+
 
     if [ ${#errors[@]} -gt 0 ]; then
         die "${errors[*]}"

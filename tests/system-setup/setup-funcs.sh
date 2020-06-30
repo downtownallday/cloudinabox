@@ -116,3 +116,15 @@ ciab_install() {
     # set actual STORAGE_ROOT, STORAGE_USER, PRIVATE_IP, etc
     . /etc/cloudinabox.conf || die "Could not source /etc/cloudinabox.conf"
 }
+
+
+populate_by_name() {
+    local populate_name="$1"
+
+    H1 "Populate Cloud-in-a-Box ($populate_name)"
+    local populate_script="tests/system-setup/populate/${populate_name}-populate.sh"
+    if [ ! -e "$populate_script" ]; then
+        die "Does not exist: $populate_script"
+    fi
+    "$populate_script" || die "Failed: $populate_script"
+}

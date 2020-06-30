@@ -7,20 +7,23 @@ This is an installation of Nextcloud that borrows some of the "Mail-in-a-Box" co
 1. centralisation of restorable data into /home/user-data
 1. system setup, upgrade, restore and reconfiguration through a single setup script
 1. encryption-at-rest
-1. limited to Ubuntu 18.04, non-Dockerized installations only
+1. fail2ban
+1. limiting installs to Ubuntu 18.04 and non-Dockerized
 
 See [Mail-in-a-Box LDAP](https://github.com/downtownallday/mailinabox-ldap).
+
+The primary purpose of this project is be able to deploy both a mail and cloud server for a home or small business that share a single user account database and that share similar installation and maintenance experiences.
 
 
 ## Integration support with Mail-in-a-Box LDAP
 
-During setup you will have an opportunity to integrate Nextcloud users and groups with Mail-in-a-Box LDAP. This permits Mail-in-a-Box users access to Nextcloud without a separate password by configuring the [LDAP/Active Directory user and group backend](https://nextcloud.com/usermanagement/) for you.
+During setup you will have an opportunity to integrate Nextcloud users and groups with the companion service Mail-in-a-Box LDAP. This permits Mail-in-a-Box users access to Nextcloud without a separate password by configuring the [LDAP/Active Directory user and group backend](https://nextcloud.com/usermanagement/) for you.
 
-In addition, `ssmtp` will be installed and configured to use Mail-in-a-Box LDAP as its mail "smart host".
+`ssmtp` will be installed and configured to use Mail-in-a-Box LDAP as its mail "smart host".
 
 Once integrated, new users can be added and removed from Nextcloud through the Mail-in-a-Box admin interface.
 
-This works only with Mail-in-a-Box LDAP, not with Mail-in-a-Box.
+Note that Mail-in-a-Box LDAP is a fork of Mail-in-a-Box that supports LDAP for users and groups. The Cloud-in-a-Box integration works only with Mail-in-a-Box LDAP, not with Mail-in-a-Box.
 
 
 ## Installation

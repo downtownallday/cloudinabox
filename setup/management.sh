@@ -25,6 +25,12 @@ create_backup_py() {
     #   if a NOBACKUP file exists
 
     say_verbose "create management/backup.py from mail-in-a-box's backup.py"
+    if grep ^WHITE_ management/backup-miab.py >/dev/null; then
+        # just in case... to avoid any bad things happening in the
+        # eval call below
+        die "'WHITE_' found in management/backup-miab.py, refusing to continue"
+    fi
+    
     echo "# GENERATED FILE - DO NOT EDIT - GENERATED FROM backup-miab.py" > "management/backup.py" || die "Could not create backup.py"
 
     # Change the python code of the "perform_backup" function:

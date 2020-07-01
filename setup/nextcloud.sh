@@ -28,7 +28,7 @@ EOF
     if [ $? -ne 0 ]; then    
         # create the necessary database
         say_verbose "Create nextcloud database '$NC_SQL_DB'"
-        mysql -u root --password="$SQL_ROOT_PASSWORD" <<EOF
+        mysql -u root --password="$SQL_ROOT_PASSWORD" --database=mysql <<EOF
 CREATE DATABASE $NC_SQL_DB CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 CREATE USER '$NC_SQL_USER'@'localhost' IDENTIFIED BY '$NC_SQL_PASSWORD';
 GRANT ALL PRIVILEGES ON $NC_SQL_DB.* TO '$NC_SQL_USER'@'localhost';
@@ -221,8 +221,8 @@ update_nextcloud_config() {
          'redis' "array(
                  'host' => '/var/run/redis/redis-server.sock',
                  'port' => 0)" \
-         'enable_previews' 'true' \
-         'enabledPreviewProviders' "array(
+         '+enable_previews' 'true' \
+         '+enabledPreviewProviders' "array(
                  0 => 'OC\\Preview\\PNG',
                  1 => 'OC\\Preview\\JPEG',
                  2 => 'OC\\Preview\\GIF',
@@ -232,13 +232,13 @@ update_nextcloud_config() {
                  6 => 'OC\\Preview\\MP3',
                  7 => 'OC\\Preview\\TXT',
                  8 => 'OC\\Preview\\MarkDown')" \
-         'preview_max_x' 1024 \
-         'preview_max_y' 768 \
-         'preview_max_scale_factor' 1 \
+         '+preview_max_x' 1024 \
+         '+preview_max_y' 768 \
+         '+preview_max_scale_factor' 1 \
          'filesystem_check_changes' 0 \
          'log_type' 'file' \
          'logfile' '/var/log/nextcloud/nextcloud.log' \
-         'loglevel' 1 \
+         '+loglevel' 2 \
          'logtimezone'  "$TIMEZONE" \
          'log_rotate_size' 0 \
          'activity_expire_days' 30 \

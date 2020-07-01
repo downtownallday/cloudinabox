@@ -9,8 +9,11 @@
 #  change or add. Each element of the pair are separate
 #  arguments. Arrays should be specified as "array(...)".
 #
+# Names may be preceeded with '+' to indicate that the value should be
+# added, but not modify an existing value if it already exists.
 #
-# For example:
+# For example, to set dbhost to 'localhost' and trusted_domains to an
+# array of values:
 #
 #   sudo -u www-data php editconfig.php /usr/local/nextcloud/config/config.php dbhost localhost trusted_domains "array(0=>'localhost',1=>'127.0.0.1')"
 #
@@ -18,6 +21,9 @@
 #
 
 require($argv[1]);
+
+$dry_run = false;
+
 
 function print_array($v, $level, $fp) {
   fwrite($fp, "array (\n");
@@ -58,7 +64,14 @@ function print_array($v, $level, $fp) {
 
 
 for($i=2; $i<count($argv); $i+=2) {
+   $overwrite = true;
+   
    $name=$argv[$i];
+   if (substr($name,0,1) == "+") {
+       $overwrite = false;
+       $name=substr($name,1);
+   }
+
    $value=$argv[$i+1];
    if(substr($value,0,5) == "array") {
        $value = eval('return ' . $value . ';');
@@ -73,11 +86,19 @@ for($i=2; $i<count($argv); $i+=2) {
    else if ($value == "false") {
        $value = false;
    }
-   $CONFIG[$name] = $value;
+
+   if ($overwrite || ! array_key_exists($name, $CONFIG)) {
+       $CONFIG[$name] = $value;
+   }
 }
 
-# $fp = STDOUT;
-$fp = fopen($argv[1] . ".new", "w");
+
+if ($dry_run) {
+   $fp = STDOUT;
+} else {
+   $fp = fopen($argv[1] . ".new", "w");
+}
+
 fwrite($fp, "<?php\n");
 fwrite($fp, "\$CONFIG=");
 print_array($CONFIG, 1, $fp);
@@ -86,10 +107,12 @@ fwrite($fp, "?>\n");
 fclose($fp);
 
 # ok - rename
-if (file_exists($argv[1] . ".old")) {
-   unlink($argv[1] . ".old");
+if (! $dry_run) {
+   if (file_exists($argv[1] . ".old")) {
+      unlink($argv[1] . ".old");
+   }
+   rename($argv[1], $argv[1] . ".old");
+   rename($argv[1] . ".new", $argv[1]);
 }
-rename($argv[1], $argv[1] . ".old");
-rename($argv[1] . ".new", $argv[1]);
 
 ?>

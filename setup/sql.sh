@@ -123,6 +123,7 @@ store_root_password() {
 [client]
 user=root
 password='$SQL_ROOT_PASSWORD'
+database=${NC_SQL_DB:-nextclouddb}
 EOF
     [ $? -ne 0 ] &&
         say "WARNING: could not create $HOME/.my.cnf"
@@ -152,8 +153,7 @@ secure_server() {
     SQL_ROOT_PASSWORD="$pass"
 
     # set the root password and secure installation
-    mysql -u root --password='' <<EOF
-use mysql;
+    mysql -u root --password='' --database=mysql <<EOF
 -- set root password
 update user SET Password=PASSWORD('$pass') where User='root';
 
@@ -183,8 +183,7 @@ EOF
 allow_nonroot_access() {
     # OPTIONAL: allow non-root (unix) user to authenticate as 'root'
     # in mariadb
-    mysql -u root --password="$SQL_ROOT_PASSWORD" <<EOF
-use mysql;
+    mysql -u root --password="$SQL_ROOT_PASSWORD" --database=mysql <<EOF
 update user set plugin=' ' where User='root';
 flush privileges;
 EOF
@@ -204,7 +203,7 @@ create_datadir   || die "Installation failed, unable to continue"
 
 # server must be restarted for configuration changes to take effect
 fix_systemd
-systemctl restart mariadb
+systemctl restart mariadb || die "mariadb would not start!"
 
 # secure the server - only needs to be done once - on RUNNING server
 secure_server

@@ -124,6 +124,9 @@ store_root_password() {
 user=root
 password='$SQL_ROOT_PASSWORD'
 database=${NC_SQL_DB:-nextclouddb}
+
+[mysqldump]
+database=''
 EOF
     [ $? -ne 0 ] &&
         say "WARNING: could not create $HOME/.my.cnf"

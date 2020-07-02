@@ -377,14 +377,14 @@ def check_hostname_dns(env, output):
 	else:
 		output.print_ok("Hostname '%s' resolves to this machine (%s)" % (env["PRIMARY_HOSTNAME"], ans))
 
-def check_certificate_status(env, output):
+def check_certificate_status(env, output, rounded_values=False):
 	domain = env['PRIMARY_HOSTNAME']
 	ssl_certificates = get_ssl_certificates(env)
 	tls_cert = get_domain_ssl_files(domain, ssl_certificates, env)
 	if not os.path.exists(tls_cert["certificate"]):
 		output.print_error("Certificate does not exist: %s" % tls_cert["certificate"])
 		return
-	cert_status, cert_status_details = check_certificate(domain, tls_cert["certificate"], tls_cert["private-key"], warn_if_expiring_soon=False)
+	cert_status, cert_status_details = check_certificate(domain, tls_cert["certificate"], tls_cert["private-key"], rounded_time=rounded_values)
 	if cert_status == "SELF-SIGNED":
 		output.print_error("SSL/TLS certificate is self-signed")
 		return
@@ -401,12 +401,12 @@ def run_system_checks(rounded_values, env, output):
 	check_free_disk_space(rounded_values, env, output)
 	check_free_memory(rounded_values, env, output)
 
-def run_network_checks(env, output):
+def run_network_checks(env, output, rounded_values):
 	# Also see setup/network-checks.sh.
 	output.add_heading("Network")
 	check_ufw(env, output)
 	check_hostname_dns(env, output)
-	check_certificate_status(env, output)
+	check_certificate_status(env, output, rounded_values)
 
 def run_services_checks(env, output, pool):
 	# Check that system services are running.
@@ -431,7 +431,7 @@ def run_checks(rounded_values, env, output, pool):
 
 	run_services_checks(env, output, pool)
 	run_system_checks(rounded_values, env, output)
-	run_network_checks(env, output)
+	run_network_checks(env, output, rounded_values)
 
 
 def run_and_output_changes(env, pool):

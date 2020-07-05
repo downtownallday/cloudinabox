@@ -12,27 +12,27 @@ This is an installation of Nextcloud that borrows some of the "Mail-in-a-Box" co
 
 See [Mail-in-a-Box LDAP](https://github.com/downtownallday/mailinabox-ldap).
 
-The primary purpose of this project is be able to deploy both a mail and cloud server for a home or small business that share a single user account database and that share similar installation and maintenance experiences.
+The primary purpose of this project is be able to deploy both a mail and cloud server for a home or small business that share a single user account database and that share similar installation and maintenance experiences. That said, both Mail-in-a-Box and Cloud-in-a-Box work just fine independently as well.
 
 
 ## Integration support with Mail-in-a-Box LDAP
 
-During setup you will have an opportunity to integrate Nextcloud users and groups with the companion service Mail-in-a-Box LDAP. This permits Mail-in-a-Box users access to Nextcloud without a separate password by configuring the [LDAP/Active Directory user and group backend](https://nextcloud.com/usermanagement/) for you.
+During setup you will have an opportunity to optionally integrate Nextcloud users and groups with the companion service Mail-in-a-Box LDAP. This permits Mail-in-a-Box users access to Nextcloud without a separate password by configuring the [LDAP/Active Directory user and group backend](https://nextcloud.com/usermanagement/) for you.
 
 `ssmtp` will be installed and configured to use Mail-in-a-Box LDAP as its mail "smart host".
 
 Once integrated, new users can be added and removed from Nextcloud through the Mail-in-a-Box admin interface.
 
-Note that Mail-in-a-Box LDAP is a fork of Mail-in-a-Box that supports LDAP for users and groups. The Cloud-in-a-Box integration works only with Mail-in-a-Box LDAP, not with Mail-in-a-Box.
+Note that Mail-in-a-Box LDAP is a fork of Mail-in-a-Box that supports LDAP for users and groups. This integration step works only with Mail-in-a-Box LDAP, not with Mail-in-a-Box.
 
 
 ## Installation
 
 1. on a fresh Ubuntu 18.04 system, install git `apt-get install git`
 2. from your home directory, clone the source code repo `git clone https://github.com/downtownallday/cloudinabox.git cloudinabox`
-3. checkout the latest version `git checkout v0.1`
+3. checkout the latest version `git checkout v0.2`
 4. set your working directory to cloudinabox `cd cloudinabox`
-5. run setup as root `sudo setup/start.sh`
+5. run setup as root `sudo setup/start.sh` (or sudo ehdd/start-encrypted.sh to use encryption-at-rest)
 
 To integrate with Mail-in-a-Box LDAP, you will also need root acess to the Mail-in-a-Box LDAP system to:
 
@@ -42,7 +42,6 @@ To integrate with Mail-in-a-Box LDAP, you will also need root acess to the Mail-
 
 All of these items are prompted for during setup.
 
-The integration step is completely optional.
 
 
 ## Certificate provisioning

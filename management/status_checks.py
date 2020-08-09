@@ -508,27 +508,27 @@ if __name__ == "__main__":
 	from utils import load_environment
 
 	env = load_environment()
-	pool = multiprocessing.pool.Pool(processes=10)
+	with multiprocessing.pool.Pool(processes=10) as pool:
 
-	if len(sys.argv) == 1:
-		run_checks(False, env, ConsoleOutput(), pool)
+		if len(sys.argv) == 1:
+			run_checks(False, env, ConsoleOutput(), pool)
 
-	elif sys.argv[1] == "--show-changes":
-		run_and_output_changes(env, pool)
+		elif sys.argv[1] == "--show-changes":
+			run_and_output_changes(env, pool)
 
-	elif sys.argv[1] == "--check-primary-hostname":
-		# See if the primary hostname appears resolvable and has a signed certificate.
-		domain = env['PRIMARY_HOSTNAME']
-		if query_dns(domain, "A") != env['PUBLIC_IP']:
-			sys.exit(1)
-		ssl_certificates = get_ssl_certificates(env)
-		tls_cert = get_domain_ssl_files(domain, ssl_certificates, env)
-		if not os.path.exists(tls_cert["certificate"]):
-			sys.exit(1)
-		cert_status, cert_status_details = check_certificate(domain, tls_cert["certificate"], tls_cert["private-key"], warn_if_expiring_soon=False)
-		if cert_status != "OK":
-			sys.exit(1)
-		sys.exit(0)
+		elif sys.argv[1] == "--check-primary-hostname":
+			# See if the primary hostname appears resolvable and has a signed certificate.
+			domain = env['PRIMARY_HOSTNAME']
+			if query_dns(domain, "A") != env['PUBLIC_IP']:
+				sys.exit(1)
+			ssl_certificates = get_ssl_certificates(env)
+			tls_cert = get_domain_ssl_files(domain, ssl_certificates, env)
+			if not os.path.exists(tls_cert["certificate"]):
+				sys.exit(1)
+			cert_status, cert_status_details = check_certificate(domain, tls_cert["certificate"], tls_cert["private-key"], warn_if_expiring_soon=False)
+			if cert_status != "OK":
+				sys.exit(1)
+			sys.exit(0)
 
-	elif sys.argv[1] == "--version":
-		print(what_version_is_this(env))
+		elif sys.argv[1] == "--version":
+			print(what_version_is_this(env))

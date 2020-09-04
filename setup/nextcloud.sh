@@ -259,7 +259,7 @@ update_nextcloud_config() {
 update_crontab() {
     cat >/etc/cron.d/cloudinabox-nextcloud <<EOF
 # Generated file do not edit
-*/15 * * * *	root	sudo -u www-data php -f $NCDIR/cron.php
+*/5 * * * *	root	sudo -u www-data php -f $NCDIR/cron.php
 0 1 * * *	root	sudo -u www-data php $NCDIR/occ app:list > "$STORAGE_ROOT/nextcloud/app.list"
 1 1 * * *	root	sudo -u www-data php $NCDIR/occ config:list > "$STORAGE_ROOT/nextcloud/config.list"
 30 2 * * *	root	/usr/bin/mysqldump --defaults-extra-file=$HOME/.my.cnf --single-transaction --routines --triggers --databases $NC_SQL_DB | /usr/bin/xz > "$STORAGE_ROOT/sql/data_backup/$NC_SQL_DB.sql.xz"; chmod 600 "$STORAGE_ROOT/sql/data_backup/$NC_SQL_DB.sql.xz"

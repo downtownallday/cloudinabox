@@ -12,7 +12,7 @@ This is an installation of Nextcloud that borrows some of the "Mail-in-a-Box" co
 
 See [Mail-in-a-Box LDAP](https://github.com/downtownallday/mailinabox-ldap).
 
-The primary purpose of this project is be able to deploy both a mail and cloud server for a home or small business that share a single user account database and that share similar installation and maintenance experiences. That said, both Mail-in-a-Box and Cloud-in-a-Box work just fine independently as well.
+The primary purpose of this project is be able to easly deploy and maintain a cloud server (Nextcloud) for a home or small business, and together with Mail-in-a-Box LDAP, share a single user account database and similar installation and maintenance experiences. That said, both Mail-in-a-Box and Cloud-in-a-Box work just fine independently as well.
 
 
 ## Integration support with Mail-in-a-Box LDAP

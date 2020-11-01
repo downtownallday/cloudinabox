@@ -56,6 +56,9 @@ if [ ! -x /usr/bin/duplicity ]; then
     apt-get install -y -qq duplicity
 fi
 
+echo "Ensure mariadb is installed so mysql user and group are available"
+apt-get install -y -qq mariadb-server
+
 echo "Restoring with duplicity"
 duplicity restore --force "file://$backup_files_dir" "$restore_to_dir" 2>&1 | (
     code=0
@@ -70,6 +73,18 @@ duplicity restore --force "file://$backup_files_dir" "$restore_to_dir" 2>&1 | (
 
 codes="${PIPESTATUS[0]}${PIPESTATUS[1]}"
 [ "$codes" -ne "00" ] && exit 1
+
+
+#
+# check that filesystem uid's/gid's mapped to actual users/groups
+#
+if [ "$(find "$restore_to_dir" -nouser)" != "" ]; then
+    echo "WARNING: some restored file/directory ownerships are unmatched"
+fi
+if [ "$(find "$restore_to_dir" -nogroup)" != "" ]; then
+    echo "WARNING: some restored file/directory groups are unmatched"
+fi
+
 
 echo ""
 echo "Restore successful"

@@ -67,7 +67,16 @@ download_nextcloud() {
         [ "$ver" == "null.." ] && "system.version key not found in $STORAGE_ROOT/nextcloud/config.list - could not download the right version of Nextcloud that matches data"
         
         url="https://download.nextcloud.com/server/releases/nextcloud-${ver}.tar.bz2"
+        
+    elif [ -e "$STORAGE_ROOT/nextcloud/config/config.php" ]; then
+        # restoring from backup -- same caveats as above, but
+        # get the nextcloud version from config.php
+        get_config_value "version" "" "$STORAGE_ROOT/nextcloud/config/config.php"
+        [ "$VALUE" == "" ] && "version key not found in $STORAGE_ROOT/nextcloud/config/config.php - could not download the right version of Nextcloud that matches data"
+        local ver="$(awk -F. '{print $1"."$2"."$3}' <<< "$VALUE")"
+        url="https://download.nextcloud.com/server/releases/nextcloud-${ver}.tar.bz2"
     fi
+    
     
     mkdir -p "$NCDIR" || die "Unable to create $NCDIR"
 
@@ -90,9 +99,10 @@ download_nextcloud() {
 get_config_value() {
     local name="$1"
     local default_value="$2"
+    local config_php="${3:-$NCDIR/config/config.php}"
     local x
     x=$(php -r "
-require '$NCDIR/config/config.php';
+require '$config_php';
 if (!array_key_exists('$name', \$CONFIG)) 
      { print('DOES-NOT-EXIST'); } 
 else 

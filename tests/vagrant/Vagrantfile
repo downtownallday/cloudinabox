@@ -1,0 +1,34 @@
+
+Vagrant.configure("2") do |config|
+
+  config.vm.synced_folder "../..", "/cloudinabox", id: "cloudinabox", automount: false
+  config.vm.provision "file", source:"globals.sh", destination:"globals.sh"
+  config.vm.box = "ubuntu/bionic64"
+
+  # vanilla install with encryption-at-rest
+
+  config.vm.define "vanilla-ehdd" do |m1|
+    m1.vm.provision :shell, :inline => <<-SH
+source globals.sh || exit 1
+export PRIMARY_HOSTNAME=qa1.abc.com
+export EHDD_KEYFILE=$HOME/keyfile
+echo -n "boo" >$EHDD_KEYFILE
+cd /cloudinabox
+tests/system-setup/vanilla.sh; rc=$?
+echo "EXITCODE: $rc"
+SH
+  end
+
+  # from-backup: restore a backup, then install
+
+  config.vm.define "from-backup" do |m1|
+    m1.vm.provision :shell, :inline => <<-SH
+source globals.sh || exit 1
+export PRIMARY_HOSTNAME=qa2.abc.com
+cd /cloudinabox
+tests/system-setup/from-backup.sh; rc=$?
+echo "EXITCODE: $rc"
+SH
+  end
+
+end

@@ -35,11 +35,20 @@ init_test_system() {
     # is upgraded through automatic upgrades (because maybe MiaB was
     # previously installed), it may cause problems with the rest of
     # the setup, such as with name resolution failures
-    if is_false "$TRAVIS"; then
+    if is_false "$TRAVIS" && [ "$SKIP_SYSTEM_UPDATE" != "1" ]; then
         H2 "apt-get upgrade"
         wait_for_apt
         apt-get upgrade -qq || die "apt-get upgrade failed!"
     fi
+
+    # install avahi if the system dns domain is .local - note that
+    # /bin/dnsdomainname returns empty string at this point
+    case "$PRIMARY_HOSTNAME" in
+        *.local )
+            wait_for_apt
+            apt-get install -y -qq avahi-daemon || die "could not install avahi"
+            ;;
+    esac
 }
 
 
@@ -80,19 +89,57 @@ init_ciab_testing() {
         rc=1
     fi
         
-    if array_contains "--qa-ca" "$@"; then
-        echo "Copy certificate authority"
-        if ! cp tests/assets/ssl/ca_*.pem $STORAGE_ROOT/ssl; then
-            echo "Copy failed ($?)"
-            rc=1
-        fi
-    fi
+    # process command line args
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --qa-ca )
+                echo "Copy certificate authority"
+                shift
+                if ! cp tests/assets/ssl/ca_*.pem $STORAGE_ROOT/ssl; then
+                    echo "Copy failed ($?)"
+                    rc=1
+                fi
+                ;;
+
+            --enable-mod=* )
+                local mod="$(awk -F= '{print $2}' <<<"$1")"
+                shift
+                echo "Enabling local mod '$mod'"
+                if ! enable_ciab_mod "$mod"; then
+                    echo "Enabling mod '$mod' failed"
+                    rc=1
+                fi
+                ;;
+
+            * )
+                # ignore unknown option - may be interpreted elsewhere
+                shift
+                ;;
+        esac            
+    done
     
     # now that we've copied our files, unmount STORAGE_ROOT if
     # encryption-at-rest was enabled
     ehdd/umount.sh
     
     return $rc
+}
+
+enable_ciab_mod() {
+    local name="${1}.sh"
+    if [ ! -e "$LOCAL_MODS_DIR/$name" ]; then
+        mkdir -p "$LOCAL_MODS_DIR"
+        if ! ln -s "$(pwd)/setup/mods.available/$name" "$LOCAL_MODS_DIR/$name"
+        then
+            echo "Warning: copying instead of symlinking $LOCAL_MODS_DIR/$name"
+            cp "setup/mods.available/$name" "$LOCAL_MODS_DIR/$name"
+        fi
+    fi
+}
+
+disable_ciab_mod() {
+    local name="${1}.sh"
+    rm -f "$LOCAL_MODS_DIR/$name"
 }
 
 
@@ -115,6 +162,11 @@ ciab_install() {
 
     # set actual STORAGE_ROOT, STORAGE_USER, PRIVATE_IP, etc
     . /etc/cloudinabox.conf || die "Could not source /etc/cloudinabox.conf"
+
+    # setup changes the hostname so avahi must be restarted
+    if systemctl is-active --quiet avahi-daemon; then
+        systemctl restart avahi-daemon
+    fi
 }
 
 

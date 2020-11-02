@@ -1,7 +1,7 @@
 #!/bin/bash
 
-. setup/functions.sh     || exit 1
 . /etc/cloudinabox.conf  || die "Could not load /etc/cloudinabox.conf"
+. setup/functions.sh     || exit 1
 
 say "Installing redis"
 apt_install redis-server php-redis php-apcu || die "Unable to install redis packages"

@@ -38,7 +38,7 @@ init_test_system() {
     if is_false "$TRAVIS" && [ "$SKIP_SYSTEM_UPDATE" != "1" ]; then
         H2 "apt-get upgrade"
         wait_for_apt
-        apt-get upgrade -qq || die "apt-get upgrade failed!"
+        apt-get --with-new-pkgs -y upgrade || die "apt-get upgrade failed!"
     fi
 
     # install avahi if the system dns domain is .local - note that
@@ -146,11 +146,26 @@ disable_ciab_mod() {
 ciab_install() {
     H1 "CIAB INSTALL"
 
+    # process command line args
+    local start_args=()
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -v )
+                start_args+=("$1")
+                shift
+                ;;
+            * )
+                # ignore unknown option - may be interpreted elsewhere
+                shift
+                ;;
+        esac
+    done
+
     # if EHDD_KEYFILE is set, use encryption-at-rest support
     if [ ! -z "$EHDD_KEYFILE" ]; then
-        ehdd/start-encrypted.sh
+        ehdd/start-encrypted.sh ${start_args[@]}
     else
-        setup/start.sh
+        setup/start.sh ${start_args[@]}
     fi
     
     if [ $? -ne 0 ]; then

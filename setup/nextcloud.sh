@@ -1,10 +1,7 @@
 #!/bin/bash
 
-. setup/functions.sh     || exit 1
 . /etc/cloudinabox.conf  || die "Could not load /etc/cloudinabox.conf"
-
-NCDIR="/usr/local/nextcloud"
-NCDATA="$STORAGE_ROOT/nextcloud/data"
+. setup/functions.sh     || exit 1
 
 
 update_sql_conf() {
@@ -50,70 +47,42 @@ download_nextcloud() {
     fi
 
     say_verbose "Downloading and installing Nextcloud binaries"
-    
-    local latest="https://download.nextcloud.com/server/releases/latest.tar.bz2"
-    local url="$latest"
-    
-    if [ -e "$STORAGE_ROOT/nextcloud/config.list" ]; then
-        # restoring from backup -- install the version of Nextcloud
-        # that corresponds to the data directory. it is very important
-        # that the versions correspond
 
-        # parse the json file and extract the Nextcloud server version
-        # to 3 positions
-        local ver
-        ver=$(jq -c '.system.version' "$STORAGE_ROOT/nextcloud/config.list" | sed 's/"//g' | awk -F. '{print $1"."$2"."$3}')
-        [ $? -ne 0 ] && die "Json parse failed. Could not extract nextcloud version from $STORAGE_ROOT/nextcloud/config.list"
-        [ "$ver" == "null.." ] && "system.version key not found in $STORAGE_ROOT/nextcloud/config.list - could not download the right version of Nextcloud that matches data"
-        
-        url="https://download.nextcloud.com/server/releases/nextcloud-${ver}.tar.bz2"
-        
-    elif [ -e "$STORAGE_ROOT/nextcloud/config/config.php" ]; then
-        # restoring from backup -- same caveats as above, but
-        # get the nextcloud version from config.php
-        get_config_value "version" "" "$STORAGE_ROOT/nextcloud/config/config.php"
-        [ "$VALUE" == "" ] && "version key not found in $STORAGE_ROOT/nextcloud/config/config.php - could not download the right version of Nextcloud that matches data"
+    # check if we're restoring from backup and only install the
+    # version of Nextcloud that corresponds to the data directory. it
+    # is very important that the versions correspond
+
+    local latest="https://download.nextcloud.com/server/releases/${REQUIRED_NC_FOR_FRESH_INSTALLS}.tar.bz2"
+    local url="$latest"
+
+    get_nc_config_value "version" ||
+        die "error reading the nextcloud version from $NCSTORAGE/config/config.php or $NCSTORAGE/config.list !"
+
+    if [ "$VALUE" == "" ]; then
+        # not restoring from backup...
+        say_verbose ".. installing the latest Nextcloud for this system"
+    else
+        # extract the Nextcloud version to 3 positions
+        say_verbose ".. restore Nextcloud version $VALUE"
         local ver="$(awk -F. '{print $1"."$2"."$3}' <<< "$VALUE")"
         url="https://download.nextcloud.com/server/releases/nextcloud-${ver}.tar.bz2"
     fi
+           
     
+    download_link "$url" to-file use-cache
     
-    mkdir -p "$NCDIR" || die "Unable to create $NCDIR"
-
-    say "Downloading: $url"
-            
-    curl -s "$url" | (cd "$(dirname "$NCDIR")"; tar -xjf -)
     if [ $? -ne 0 ]; then
-        rm -rf "$NCDIR"
-        die "Unable to download nextcloud ($latest)"
+        die "Unable to download nextcloud ($url)"
+    else
+        say_verbose "Extracting: $DOWNLOAD_FILE"
+        mkdir -p "$NCDIR" || die "Unable to create $NCDIR"
+        (cd "$(dirname "$NCDIR")"; tar -xjf "$DOWNLOAD_FILE")
     fi
     
     chown -R www-data:www-data "$NCDIR"
     if [ $? -ne 0 ]; then
         rm -rf "$NCDIR"
         die "Unable to set permissions on $NCDIR"
-    fi
-    return 0
-}
-
-get_config_value() {
-    local name="$1"
-    local default_value="$2"
-    local config_php="${3:-$NCDIR/config/config.php}"
-    local x
-    x=$(php -r "
-require '$config_php';
-if (!array_key_exists('$name', \$CONFIG)) 
-     { print('DOES-NOT-EXIST'); } 
-else 
-     {print(\$CONFIG['$name']);}"
-     )
-    [ $? -ne 0 -o -z "$x" ] &&
-        die "Unable to run php to obtain config variable '$name'"
-    if [ "$x" == "DOES-NOT-EXIST" ]; then
-        VALUE="$default_value"
-    else
-        VALUE="$x"
     fi
     return 0
 }
@@ -147,7 +116,7 @@ install_nextcloud() {
         installed=0
     else
         # get installed state
-        get_config_value installed 0
+        get_nc_config_value installed 0
         installed=$VALUE
     fi
 
@@ -159,11 +128,11 @@ install_nextcloud() {
             die "Nextcloud occ maintenance:install failed"
         fi
 
-        cat >$STORAGE_ROOT/nextcloud/ciab_nextcloud.conf <<EOF
+        cat >"$CIAB_NEXTCLOUD_CONF" <<EOF
 NC_ADMIN_USER=admin
 NC_ADMIN_PASSWORD='$SQL_ROOT_PASSWORD'
 EOF
-        chmod 600 $STORAGE_ROOT/nextcloud/ciab_nextcloud.conf    
+        chmod 600 "$CIAB_NEXTCLOUD_CONF"    
 
         # additional occ commands
         sudo -E -u www-data php $NCDIR/occ maintenance:update:htaccess -q
@@ -194,7 +163,7 @@ EOF
         die "${errors[*]}"
     fi
 
-    source "$STORAGE_ROOT/nextcloud/ciab_nextcloud.conf"
+    source "$CIAB_NEXTCLOUD_CONF"
     
     return 0
 }
@@ -270,8 +239,8 @@ update_crontab() {
     cat >/etc/cron.d/cloudinabox-nextcloud <<EOF
 # Generated file do not edit
 */5 * * * *	root	sudo -u www-data php -f $NCDIR/cron.php
-0 1 * * *	root	sudo -u www-data php $NCDIR/occ app:list > "$STORAGE_ROOT/nextcloud/app.list"
-1 1 * * *	root	sudo -u www-data php $NCDIR/occ config:list > "$STORAGE_ROOT/nextcloud/config.list"
+0 1 * * *	root	sudo -u www-data php $NCDIR/occ app:list > "$NCSTORAGE/app.list"
+1 1 * * *	root	sudo -u www-data php $NCDIR/occ config:list > "$NCSTORAGE/config.list"
 30 2 * * *	root	/usr/bin/mysqldump --defaults-extra-file=$HOME/.my.cnf --single-transaction --routines --triggers --databases $NC_SQL_DB | /usr/bin/xz > "$STORAGE_ROOT/sql/data_backup/$NC_SQL_DB.sql.xz"; chmod 600 "$STORAGE_ROOT/sql/data_backup/$NC_SQL_DB.sql.xz"
 EOF
     [ $? -ne 0 ] && die "Error installing crontab"    
@@ -312,14 +281,15 @@ create_nextcloud_site() {
 
 
     local mixins=""
-    if [ -e "local/nginx.mixins" ]; then
-        mixins="$(cat local/nginx.mixins)"
-        [ $? -ne 0 ] && die "Could not read local/nginx.mixins"
+    local local_mods_dir="${LOCAL_MODS_DIR:-local}"
+    if [ -e "$local_mods_dir/nginx.mixins" ]; then
+        mixins="$(cat $local_mods_dir/nginx.mixins)"
+        [ $? -ne 0 ] && die "Could not read $local_mods_dir/nginx.mixins"
     fi
          
     cat<<EOF > /etc/nginx/sites-available/cloudinabox-nextcloud
 upstream php-handler {
-   server unix:/var/run/php/php7.2-fpm.sock;
+   server unix:/var/run/php/php${REQUIRED_PHP_VERSION}-fpm.sock;
 }
 
 server {
@@ -505,5 +475,5 @@ cat > /etc/logrotate.d/nextcloud <<EOF
 EOF
 
 systemctl reload nginx || die "NGINX failed to start, see /var/log/syslog !!"
-systemctl restart php7.2-fpm
+systemctl restart ${REQUIRED_PHP_PACKAGE}-fpm
 

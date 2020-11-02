@@ -1,12 +1,31 @@
 #!/bin/bash
 
-. setup/functions.sh     || exit 1
 . /etc/cloudinabox.conf  || die "Could not load /etc/cloudinabox.conf"
+. setup/functions.sh     || exit 1
+
+php="$REQUIRED_PHP_PACKAGE"
+phpver="$REQUIRED_PHP_VERSION"
 
 # this mail-in-a-box script sets up and installs nginx and php-fpm
-source_miab_script "setup/web-miab.sh"
+# however to support our desired version of php, we must modify it
+# first
+echo "# GENERATED FILE - DO NOT EDIT - GENERATED FROM setup/web-miab.sh" > setup/web-miab-mods.sh \
+    || die "Could not create setup/web-miab-mods.sh"
 
-# ...remove mail-related files we don't use...
+cat setup/web-miab.sh >> setup/web-miab-mods.sh \
+    || die "Could not copy setup/web-miab.sh"
+
+# change php module names, eg: php-cli => php7.4-cli
+errmsg="Could not edit setup/web-miab.sh"
+sed -i "s/php-/$php-/g" setup/web-miab-mods.sh || die "$errmsg"
+
+# change hardcoded php version
+sed -i "s/7\\.2/$phpver/g" setup/web-miab-mods.sh || die "$errmsg"
+
+# run the modified script
+source_miab_script "setup/web-miab-mods.sh"
+
+# ... then, remove mail-related files we don't use...
 rm -f /var/lib/mailinabox/mobileconfig.xml
 rm -f /var/lib/mailinabox/mozilla-autoconfig.xml
 rm -f /var/lib/mailinabox/mta-sts.txt

@@ -3,10 +3,13 @@
 # Used by setup/start.sh
 export PRIMARY_HOSTNAME=${PRIMARY_HOSTNAME:-$(hostname --fqdn || hostname)}
 export NONINTERACTIVE=${NONINTERACTIVE:-1}
+export SKIP_SYSTEM_UPDATE=${SKIP_SYSTEM_UPDATE:-1}
 export STORAGE_USER="${STORAGE_USER:-user-data}"
 export STORAGE_ROOT="${STORAGE_ROOT:-/home/$STORAGE_USER}"
 export PUBLIC_IP="${PUBLIC_IP:-$(source ${MIAB_DIR:-.}/setup/functions.sh; get_default_privateip 4)}"
 export ALERTS_EMAIL="${ALERTS_EMAIL:-qa@abc.com}"
+export LOCAL_MODS_DIR="${LOCAL_MODS_DIR:-local}"
+export DOWNLOAD_CACHE_DIR="${DOWNLOAD_CACHE_DIR:-$(pwd)/downloads}"
 
 # Used by ehdd/start-encrypted.sh
 export EHDD_KEYFILE="${EHDD_KEYFILE:-}"

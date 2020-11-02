@@ -1,8 +1,9 @@
 #!/bin/bash
 
-. setup/functions.sh     || exit 1
 . /etc/cloudinabox.conf  || die "Could not load /etc/cloudinabox.conf"
+. setup/functions.sh     || exit 1
 
+phpver="$REQUIRED_PHP_VERSION"
 
 # install packages
 
@@ -79,7 +80,7 @@ IN_DEF && /wait_for_service/ { print "# "$0; next }
         "code, ret = shell('check_output', ['/usr/bin/sudo', '-u', 'www-data', 'php', '/usr/local/nextcloud/occ', 'maintenance:mode', '--on'], capture_stderr=True, trap=True)"
         "if code != 0: print(ret)"
         "if code != 0: sys.exit(code)"
-        "service_command('php7.2-fpm', 'stop', quit=True)"
+        "service_command('php${phpver}-fpm', 'stop', quit=True)"
         "service_command('redis-server', 'stop', quit=True)"
         "service_command('mariadb', 'stop', quit=True)"
     )
@@ -87,7 +88,7 @@ IN_DEF && /wait_for_service/ { print "# "$0; next }
     local start_cmds=(
         "service_command('redis-server', 'start', quit=False)"
         "service_command('mariadb', 'start', quit=False)"
-        "service_command('php7.2-fpm', 'start', quit=False)"
+        "service_command('php${phpver}-fpm', 'start', quit=False)"
         "code, ret = shell('check_output', ['/usr/bin/sudo', '-u', 'www-data', 'php', '/usr/local/nextcloud/occ', 'maintenance:mode', '--off'], capture_stderr=True, trap=True)"
         "if code != 0: print(ret)"
     )

@@ -32,4 +32,4 @@ init() {
 init "$@"
 
 # run setup
-ciab_install
+ciab_install "$@"

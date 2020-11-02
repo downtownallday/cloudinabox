@@ -1,33 +1,80 @@
+load './funcs.rb'
 
 Vagrant.configure("2") do |config|
 
   config.vm.synced_folder "../..", "/cloudinabox", id: "cloudinabox", automount: false
-  config.vm.provision "file", source:"globals.sh", destination:"globals.sh"
-  config.vm.box = "ubuntu/bionic64"
 
-  # vanilla install with encryption-at-rest
+  #
+  # vanilla with ubuntu 18 (bionic), then upgrade to ubuntu 20 (focal)
+  # requires plugin 'vagrant-reload'
+  #
 
-  config.vm.define "vanilla-ehdd" do |m1|
+  config.vm.define "vanilla-bionic2focal" do |m1|
+    if !Vagrant.has_plugin?('vagrant-reload')
+      raise("Plugin 'vagrant-reload' is required")
+    end
+    
+    use_preloaded_box m1, "ubuntu/bionic64"
     m1.vm.provision :shell, :inline => <<-SH
-source globals.sh || exit 1
-export PRIMARY_HOSTNAME=qa1.abc.com
-export EHDD_KEYFILE=$HOME/keyfile
-echo -n "boo" >$EHDD_KEYFILE
 cd /cloudinabox
-tests/system-setup/vanilla.sh; rc=$?
-echo "EXITCODE: $rc"
+source tests/vagrant/globals.sh || exit 1
+export PRIMARY_HOSTNAME=b2f1.abc.com
+export SKIP_SYSTEM_UPDATE=0
+tests/system-setup/vanilla.sh -v || exit 1
+tests/runner.sh default || exit 2
+SH
+
+    # reboot may be required when updates were applied
+    m1.vm.provision :reload
+
+    # upgrade ubuntu
+    m1.vm.provision :shell, :inline => <<-SH
+cd /cloudinabox
+tests/bin/wait_for_network.sh
+tests/bin/do_release_upgrade.sh || exit 3
+SH
+
+    # reboot required after any system upgrade
+    m1.vm.provision :reload
+
+    m1.vm.provision :shell, :inline => <<-SH
+cd /cloudinabox
+source tests/system-setup/setup-defaults.sh
+setup/start.sh -v || exit 4
+tests/runner.sh default || exit 5
 SH
   end
 
-  # from-backup: restore a backup, then install
-
-  config.vm.define "from-backup" do |m1|
+  
+  #
+  # vanilla with encryption-at-rest / focal
+  #
+  
+  config.vm.define "vanilla-ehdd-focal" do |m1|
+    use_preloaded_box m1, "ubuntu/focal64"    
     m1.vm.provision :shell, :inline => <<-SH
-source globals.sh || exit 1
-export PRIMARY_HOSTNAME=qa2.abc.com
 cd /cloudinabox
-tests/system-setup/from-backup.sh; rc=$?
-echo "EXITCODE: $rc"
+source tests/vagrant/globals.sh || exit 1
+export PRIMARY_HOSTNAME=qa2.abc.com
+export EHDD_KEYFILE=$HOME/keyfile
+echo -n "boo" >$EHDD_KEYFILE
+tests/system-setup/vanilla.sh || exit 1
+tests/runner.sh default || exit 2
+SH
+  end
+
+  #
+  # from-backup: restore a backup, then install w/bionic
+  #
+
+  config.vm.define "from-backup-bionic" do |m1|
+    use_preloaded_box m1, "ubuntu/bionic64"
+    m1.vm.provision :shell, :inline => <<-SH
+cd /cloudinabox
+source tests/vagrant/globals.sh || exit 1
+export PRIMARY_HOSTNAME=qacloud.int.com
+tests/system-setup/from-backup.sh || exit 1
+tests/runner.sh default || exit 2
 SH
   end
 

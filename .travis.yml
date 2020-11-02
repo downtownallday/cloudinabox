@@ -1,0 +1,23 @@
+# travisci config
+env:
+  global:
+  - CLOUD_IN_A_BOX_PROJECT=true
+
+language: shell
+os: linux
+
+jobs:
+  fast_finish: true
+  include:
+  # JOB: CiaB vanilla on bionic
+  - env:
+      - PRIMARY_HOSTNAME=box1.abc.com
+    dist: bionic
+    name: vanilla-bionic
+    
+    install:
+      - sudo tests/system-setup/vanilla.sh -v
+    script:
+      # launch automated tests
+      - sudo tests/runner.sh -dumpoutput default
+

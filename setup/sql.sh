@@ -1,11 +1,7 @@
 #!/bin/bash
 
-. setup/functions.sh     || exit 1
 . /etc/cloudinabox.conf  || die "Could not load /etc/cloudinabox.conf"
-
-DATADIR=$STORAGE_ROOT/sql/data
-DATABACKUPDIR=$STORAGE_ROOT/sql/data_backup
-CIAB_SQL_CONF="$STORAGE_ROOT/sql/ciab_sql.conf"
+. setup/functions.sh     || exit 1
 
 #
 # setup & configure mariadb
@@ -19,15 +15,15 @@ install_packages() {
 create_sql_conf() {
     local conf="$CIAB_SQL_CONF"
     if [ ! -e "$conf" ]; then
-	say_verbose "Creating new $conf"
-	mkdir -p "$(dirname "$conf")" || die "Unable to create directory for $conf"
+        say_verbose "Creating new $conf"
+        mkdir -p "$(dirname "$conf")" || die "Unable to create directory for $conf"
         cat > "$conf" <<EOF
 SQL_ROOT_PASSWORD=
 DATA_DIR_CREATED=no
 DATA_DIR_SECURED=no
 EOF
-	[ $? -ne 0 ] && die "Unable to create $conf"
-	chmod 0600 "$conf"
+        [ $? -ne 0 ] && die "Unable to create $conf"
+        chmod 0600 "$conf"
     fi
 
     . "$conf"
@@ -52,7 +48,7 @@ innodb_large_prefix=true
 innodb_file_per_table=1
 binlog_format=ROW
 transaction_isolation=READ-COMMITTED
-datadir=$DATADIR
+datadir=$SQL_DATADIR
 innodb_buffer_pool_size=${avail}M
 performance_schema = off
 EOF
@@ -66,23 +62,29 @@ create_datadir() {
 
     local failed=no
 
-    say_verbose "Initialize data directory"
-    mkdir -p "$DATADIR" || die "Unable to create $DATADIR"
-    chmod 770 "$DATADIR" || failed=yes
-    mkdir -p "$DATABACKUPDIR" || die "Unable to create $DATABACKUPDIR"
-    chmod 750 "$DATABACKUPDIR" || failed=yes
+    say_verbose "Initialize sql data directory"
+    mkdir -p "$SQL_DATADIR" || die "Unable to create $SQL_DATADIR"
+    chmod 770 "$SQL_DATADIR" || failed=yes
+    mkdir -p "$SQL_DATABACKUPDIR" || die "Unable to create $SQL_DATABACKUPDIR"
+    chmod 750 "$SQL_DATABACKUPDIR" || failed=yes
+
+    local tmp="/tmp/sql.$$"
    
     if [ "$failed" == "no" ]; then
         local xargs=()
         is_verbose && xargs+=(--verbose)
-        if ! mysql_install_db --user=mysql --datadir="$DATADIR" --skip-auth-anonymous-user "${xargs[@]}" >/dev/null 2>&1
+        if ! mysql_install_db --user=mysql --datadir="$SQL_DATADIR" "${xargs[@]}" >"$tmp" 2>&1
         then
+            cat "$tmp"
+            echo "Also look for logs in /var/log"
             failed=yes
         fi
     fi
 
+    rm -f "$tmp"
+    
     if [ "$failed" == "yes" ]; then
-        rm -rf "$DATADIR" || say "Unable to remove $DATADIR - please delete manually"
+        #rm -rf "$SQL_DATADIR" || say "Unable to remove $SQL_DATADIR - please delete manually"
         return 1
     else
         tools/editconf.py "$CIAB_SQL_CONF" "DATA_DIR_CREATED=yes"
@@ -92,12 +94,20 @@ create_datadir() {
 }
 
 fix_systemd() {
+    # don't start mysqld_safe - run mysqld under systemd
+    systemctl stop mysql
+    systemctl disable mysql >/dev/null 2>&1
+    
     # mariadb refuses to allow datadir to be in /home ...
     # override the default systemd service file for mariadb
-    cp /lib/systemd/system/mariadb.service /etc/systemd/system/ 
-
-    tools/editconf.py /etc/systemd/system/mariadb.service \
-                        "ProtectHome=false"
+    local d="/etc/systemd/system/mariadb.service.d"
+    mkdir -p "$d" || die "Could not create $d"
+    cat > "$d/cloudinabox.conf" <<EOF
+# Generated file will be overwritten - do not edit
+[Service]
+ProtectHome=false
+EOF
+    [ $? -ne 0 ] && die "Could not create $d/cloudinabox.conf"
 
     # refresh systemd so it sees the file
     systemctl daemon-reload 

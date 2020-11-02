@@ -67,12 +67,12 @@ sync_recursive "$miabdir/tests/assets/ssl/" "tests/assets/ssl"
 # automatic files (source file in 'ciab_files' with corresponding
 # destination in 'miab_files')
 ciab_files=(
-    ./tests/vagrant/parallel.sh
+    ./tests/suites/_init.sh
     ./conf/nginx-ssl.conf
     ./setup/remote-nextcloud-use-miab.sh
 )
 miab_files=(
-    $miabdir/tests/vagrant/parallel.sh
+    $miabdir/tests/suites/_init.sh
     $miabdir/conf/nginx-ssl.conf
     $miabdir/setup/mods.available/remote-nextcloud-use-miab.sh
 )

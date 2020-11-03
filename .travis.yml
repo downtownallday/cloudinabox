@@ -3,6 +3,9 @@ env:
   global:
   - CLOUD_IN_A_BOX_PROJECT=true
 
+os: linux
+dist: bionic
+
 jobs:
   fast_finish: true
   include:
@@ -13,8 +16,6 @@ jobs:
     os: linux
     dist: bionic
     name: vanilla-bionic
-    services:
-      - redis-server
     install:
       - sudo tests/system-setup/vanilla.sh -v
     script:
@@ -28,8 +29,6 @@ jobs:
     os: linux
     dist: focal
     name: vanilla-focal
-    services:
-      - redis-server
     install:
       - sudo tests/system-setup/vanilla.sh -v
     script:

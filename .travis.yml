@@ -21,3 +21,17 @@ jobs:
       # launch automated tests
       - sudo tests/runner.sh -dumpoutput default
 
+  # JOB: CiaB vanilla on focal
+  - env:
+      - PRIMARY_HOSTNAME=box2.abc.com
+    language: shell
+    os: linux
+    dist: focal
+    name: vanilla-focal
+    services:
+      - redis-server
+    install:
+      - sudo tests/system-setup/vanilla.sh -v
+    script:
+      # launch automated tests
+      - sudo tests/runner.sh -dumpoutput default

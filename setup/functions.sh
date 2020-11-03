@@ -104,10 +104,15 @@ get_nc_config_value() {
     
     # try config.php first, it will be more up-to-date because
     # config.list is only updated periodically by cron
+
+    local phpx="$REQUIRED_PHP_EXECUTABLE"
+    if [ -z "$phpx" -o ! -x "$phpx" ]; then
+        phpx="/usr/bin/php"
+    fi
     
-    if [ -x /usr/bin/php -a -e "$config_php" ]; then
+    if [ -x "$phpx" -a -e "$config_php" ]; then
         local x
-        x=$(/usr/bin/php -r "
+        x=$("$phpx" -r "
 require '$config_php';
 if (!array_key_exists('$name', \$CONFIG)) { print('DOES-NOT-EXIST'); }
 else {print(\$CONFIG['$name']);}"
@@ -277,6 +282,7 @@ get_required_php_version() {
     REQUIRED_NC_FOR_FRESH_INSTALLS="latest"
     REQUIRED_PHP_PACKAGE="php7.4"
     REQUIRED_PHP_VERSION="7.4"
+    REQUIRED_PHP_EXECUTABLE="/usr/bin/php7.4"
 
     local os_desc="$OS_NAME $OS_MAJOR $OS_VERSION_CODENAME"
     
@@ -294,6 +300,7 @@ get_required_php_version() {
             REQUIRED_NC_FOR_FRESH_INSTALLS="latest-20"
             REQUIRED_PHP_PACKAGE="php7.2"
             REQUIRED_PHP_VERSION="7.2"
+            REQUIRED_PHP_EXECUTABLE="/usr/bin/php7.2"
             say "Warning: this OS ($os_desc) will not support Nextcloud versions higher than 20. Upgrade $OS_NAME to get Nextcloud versions 21 and higher."
             return 0
         else
@@ -313,28 +320,32 @@ get_required_php_version() {
         fi
         REQUIRED_PHP_PACKAGE="php7.2"
         REQUIRED_PHP_VERSION="7.2"
+        REQUIRED_PHP_EXECUTABLE="/usr/bin/php7.2"
         return 0
 
     elif [ $nc_major -le 20 ]; then
         # nextcloud 18 to 20 (inclusive) support php7.2 and php7.4
-        if [ $OS_MAJOR -eq 18 ]; then
+        if [ $OS_MAJOR -le 18 ]; then
             # ubuntu 18 does not have php7.4, only php7.2
             REQUIRED_PHP_PACKAGE="php7.2"
             REQUIRED_PHP_VERSION="7.2"
+            REQUIRED_PHP_EXECUTABLE="/usr/bin/php7.2"
             return 0
         fi
         REQUIRED_PHP_PACKAGE="php7.4"
         REQUIRED_PHP_VERSION="7.4"
+        REQUIRED_PHP_EXECUTABLE="/usr/bin/php7.4"
         return 0
 
     else
         # nextcloud 21 and higher no longer support php7.2
-        if [ $OS_MAJOR -eq 18 ]; then
-            die "The version of nextcloud installed is $nc_major, however $os_desc does not have a version of php that supports it. 7.4 is required. An OS upgrade is required."
+        if [ $OS_MAJOR -le 18 ]; then
+            die "Nextcloud version $nc_major is installed, however $os_desc does not have a version of php that supports it. 7.4 is required. An OS upgrade is required."
         fi
         
         REQUIRED_PHP_PACKAGE="php7.4"
         REQUIRED_PHP_VERSION="7.4"
+        REQUIRED_PHP_EXECUTABLE="/usr/bin/php7.4"
         return 0
     fi
 }

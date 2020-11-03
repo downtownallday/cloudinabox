@@ -3,12 +3,14 @@
 . /etc/cloudinabox.conf  || die "Could not load /etc/cloudinabox.conf"
 . setup/functions.sh     || exit 1
 
+phpx="$REQUIRED_PHP_EXECUTABLE"
+
 
 update_sql_conf() {
     local conf="$STORAGE_ROOT/sql/ciab_sql.conf"
     . "$conf" || die "Unable to load $conf"
     if [ -z "$NC_SQL_DB" ]; then
-        say_verbose "Generating a new sql password for nextcloud"
+        say_verbose "Generating a new sql password for Nextcloud"
         tools/editconf.py \
             "$conf" \
             "NC_SQL_DB=nextclouddb" \
@@ -24,14 +26,14 @@ use ${NC_SQL_DB};
 EOF
     if [ $? -ne 0 ]; then    
         # create the necessary database
-        say_verbose "Create nextcloud database '$NC_SQL_DB'"
+        say_verbose "Create Nextcloud database '$NC_SQL_DB'"
         mysql -u root --password="$SQL_ROOT_PASSWORD" --database=mysql <<EOF
 CREATE DATABASE $NC_SQL_DB CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 CREATE USER '$NC_SQL_USER'@'localhost' IDENTIFIED BY '$NC_SQL_PASSWORD';
 GRANT ALL PRIVILEGES ON $NC_SQL_DB.* TO '$NC_SQL_USER'@'localhost';
 FLUSH PRIVILEGES;
 EOF
-        [ $? -ne 0 ] && die "Unable to create nextcloud database"
+        [ $? -ne 0 ] && die "Unable to create Nextcloud database"
     else
         say_verbose "Nextcloud database already exists"
     fi
@@ -56,7 +58,7 @@ download_nextcloud() {
     local url="$latest"
 
     get_nc_config_value "version" ||
-        die "error reading the nextcloud version from $NCSTORAGE/config/config.php or $NCSTORAGE/config.list !"
+        die "error reading Nextcloud version from $NCSTORAGE/config/config.php or $NCSTORAGE/config.list !"
 
     if [ "$VALUE" == "" ]; then
         # not restoring from backup...
@@ -72,7 +74,7 @@ download_nextcloud() {
     download_link "$url" to-file use-cache
     
     if [ $? -ne 0 ]; then
-        die "Unable to download nextcloud ($url)"
+        die "Unable to download Nextcloud ($url)"
     else
         say_verbose "Extracting: $DOWNLOAD_FILE"
         mkdir -p "$NCDIR" || die "Unable to create $NCDIR"
@@ -122,8 +124,9 @@ install_nextcloud() {
 
     if [ $installed -eq 0 ]; then
         say_verbose "Running Nextcloud installation"
-        #echo sudo -E -u www-data php $NCDIR/occ  maintenance:install -vvv --database \"mysql\" --database-name \"$NC_SQL_DB\"  --database-user \"$NC_SQL_USER\" --database-pass "\"$NC_SQL_PASSWORD\"" --admin-user \"admin\" --admin-pass "\"$SQL_ROOT_PASSWORD\"" --data-dir \"$NCDATA\"        
-        sudo -E -u www-data php $NCDIR/occ  maintenance:install --database "mysql" --database-name "$NC_SQL_DB"  --database-user "$NC_SQL_USER" --database-pass "$NC_SQL_PASSWORD" --admin-user "admin" --admin-pass "$SQL_ROOT_PASSWORD" --data-dir "$NCDATA"
+        local verbose=""
+        is_verbose && verbose="-vvv"
+        sudo -E -u www-data $phpx $NCDIR/occ  maintenance:install $verbose --database "mysql" --database-name "$NC_SQL_DB"  --database-user "$NC_SQL_USER" --database-pass "$NC_SQL_PASSWORD" --admin-user "admin" --admin-pass "$SQL_ROOT_PASSWORD" --data-dir "$NCDATA"
         if [ $? -ne 0 ]; then
             die "Nextcloud occ maintenance:install failed"
         fi
@@ -135,26 +138,26 @@ EOF
         chmod 600 "$CIAB_NEXTCLOUD_CONF"    
 
         # additional occ commands
-        sudo -E -u www-data php $NCDIR/occ maintenance:update:htaccess -q
+        sudo -E -u www-data $phpx $NCDIR/occ maintenance:update:htaccess -q
         [ $? -ne 0 ] && errors+=("occ maintenance:update:htaccess failed")
-        sudo -E -u www-data php $NCDIR/occ app:disable survey_client -q
+        sudo -E -u www-data $phpx $NCDIR/occ app:disable survey_client -q
         [ $? -ne 0 ] && errors+=("occ app:disable survey_client failed")
-        sudo -E -u www-data php $NCDIR/occ app:enable admin_audit -q
+        sudo -E -u www-data $phpx $NCDIR/occ app:enable admin_audit -q
         [ $? -ne 0 ] && errors+=("occ app:enable admin_audit failed")
-        sudo -E -u www-data php $NCDIR/occ db:convert-filecache-bigint -q --no-interaction
+        sudo -E -u www-data $phpx $NCDIR/occ db:convert-filecache-bigint -q --no-interaction
         [ $? -ne 0 ] && errors+=("occ db:convert-filecache-bigint failed")
-        sudo -E -u www-data php $NCDIR/occ app:list > $STORAGE_ROOT/nextcloud/app.list
+        sudo -E -u www-data $phpx $NCDIR/occ app:list > $STORAGE_ROOT/nextcloud/app.list
         [ $? -ne 0 ] && errors+=("occ app:list failed")
 
     else
         # maintenance / recovery commands
-        sudo -E -u www-data php $NCDIR/occ maintenance:mode --off
+        sudo -E -u www-data $phpx $NCDIR/occ maintenance:mode --off
         [ $? -ne 0 ] && errors+=("occ maintenance:mode --off failed")
-        sudo -E -u www-data php $NCDIR/occ maintenance:repair -q
+        sudo -E -u www-data $phpx $NCDIR/occ maintenance:repair -q
         [ $? -ne 0 ] && errors+=("occ maintenance:repair failed")
-        sudo -E -u www-data php $NCDIR/occ db:add-missing-indices -q
+        sudo -E -u www-data $phpx $NCDIR/occ db:add-missing-indices -q
         [ $? -ne 0 ] && errors+=("occ db:add-missing-indices failed")
-        sudo -E -u www-data php $NCDIR/occ files:scan --all
+        sudo -E -u www-data $phpx $NCDIR/occ files:scan --all
         [ $? -ne 0 ] && errors+=("occ files:scan --all failed")
     fi
 
@@ -188,7 +191,7 @@ update_nextcloud_config() {
         let idx+=1
     done
     
-    sudo -u www-data php tools/editconf.php "$NCDIR/config/config.php" \
+    sudo -u www-data $phpx tools/editconf.php "$NCDIR/config/config.php" \
          'trusted_domains' "array(${trusted_domains[*]})" \
          'overwrite.cli.url' "https://$PRIMARY_HOSTNAME/" \
          'htaccess.RewriteBase' '/' \
@@ -238,14 +241,14 @@ update_nextcloud_config() {
 update_crontab() {
     cat >/etc/cron.d/cloudinabox-nextcloud <<EOF
 # Generated file do not edit
-*/5 * * * *	root	sudo -u www-data php -f $NCDIR/cron.php
-0 1 * * *	root	sudo -u www-data php $NCDIR/occ app:list > "$NCSTORAGE/app.list"
-1 1 * * *	root	sudo -u www-data php $NCDIR/occ config:list > "$NCSTORAGE/config.list"
+*/5 * * * *	root	sudo -u www-data $phpx -f $NCDIR/cron.php
+0 1 * * *	root	sudo -u www-data $phpx $NCDIR/occ app:list > "$NCSTORAGE/app.list"
+1 1 * * *	root	sudo -u www-data $phpx $NCDIR/occ config:list > "$NCSTORAGE/config.list"
 30 2 * * *	root	/usr/bin/mysqldump --defaults-extra-file=$HOME/.my.cnf --single-transaction --routines --triggers --databases $NC_SQL_DB | /usr/bin/xz > "$STORAGE_ROOT/sql/data_backup/$NC_SQL_DB.sql.xz"; chmod 600 "$STORAGE_ROOT/sql/data_backup/$NC_SQL_DB.sql.xz"
 EOF
     [ $? -ne 0 ] && die "Error installing crontab"    
 
-    sudo -E -u www-data php $NCDIR/occ background:cron -q
+    sudo -E -u www-data $phpx $NCDIR/occ background:cron -q
     [ $? -ne 0 ] && die "Could not run occ backgrond:cron"
     return 0
 }
@@ -255,7 +258,7 @@ restore_apps() {
     [ ! -e "$listfile" ] && return 0
 
     local actual desired
-    actual=( $(sudo -u www-data php $NCDIR/occ app:list | awk 'BEGIN { S=0 } /^Enabled:/ {S=1; next; } /^Disabled:/ {S=2; next; } S==1 {print substr($2,1,length($2)-1)}') )
+    actual=( $(sudo -u www-data $phpx $NCDIR/occ app:list | awk 'BEGIN { S=0 } /^Enabled:/ {S=1; next; } /^Disabled:/ {S=2; next; } S==1 {print substr($2,1,length($2)-1)}') )
     [ $? -ne 0 ] && die "Unable to list apps with occ app:list"
 
     desired=( $(cat "$listfile" | awk 'BEGIN { S=0 } /^Enabled:/ {S=1; next; } /^Disabled:/ {S=2; next; } S==1 {print substr($2,1,length($2)-1)}') )
@@ -265,8 +268,8 @@ restore_apps() {
     for app in "${desired[@]}"; do
         if ! array_contains "$app" ${actual[@]}; then
             say_verbose "Install missing app: $app"
-            sudo -E -u www-data php $NCDIR/occ app:install "$app" -q --no-interaction
-            [ $? -ne 0 ] && die "Could not install nextcloud app $app"
+            sudo -E -u www-data $phpx $NCDIR/occ app:install "$app" -q --no-interaction
+            [ $? -ne 0 ] && die "Could not install Nextcloud app $app"
         fi
     done
 }
@@ -277,7 +280,7 @@ create_nextcloud_site() {
     # SEE: https://docs.nextcloud.com/server/16/admin_manual/installation/nginx.html
     local server_name="$1"
     local cert="$2"
-    say_verbose "Creating nextcloud nginx site"
+    say_verbose "Creating Nextcloud nginx site"
 
 
     local mixins=""
@@ -424,10 +427,10 @@ server {
      }
 }   
 EOF
-    [ $? -ne 0 ] && die "Unable to create nginx nextcloud site"
+    [ $? -ne 0 ] && die "Unable to create nginx Nextcloud site"
     
     ln -sf /etc/nginx/sites-available/cloudinabox-nextcloud /etc/nginx/sites-enabled/cloudinabox-nextcloud
-    [ $? -ne 0 ] && die "Unable to enable nginx nextcloud site"
+    [ $? -ne 0 ] && die "Unable to enable nginx Nextcloud site"
     return 0
 }
 
@@ -475,5 +478,5 @@ cat > /etc/logrotate.d/nextcloud <<EOF
 EOF
 
 systemctl reload nginx || die "NGINX failed to start, see /var/log/syslog !!"
-systemctl restart ${REQUIRED_PHP_PACKAGE}-fpm
+systemctl restart php${REQUIRED_PHP_VERSION}-fpm
 

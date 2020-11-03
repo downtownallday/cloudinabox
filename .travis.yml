@@ -12,7 +12,7 @@ jobs:
     language: shell
     os: linux
     dist: bionic
-    name: vanilla-bionic    
+    name: vanilla-bionic
     services:
       - redis-server
     install:

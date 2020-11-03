@@ -204,6 +204,9 @@ dump_nextcloud_log() {
     local log_file="$1"
     local lines="$2"
     local title="DUMP OF $log_file"
+    if [ ! -e "$log_file" ]; then
+        return 0
+    fi
     echo ""
     echo "--------"
     echo -n "-------- $log_file"

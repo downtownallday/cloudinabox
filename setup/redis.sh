@@ -3,8 +3,19 @@
 . /etc/cloudinabox.conf  || die "Could not load /etc/cloudinabox.conf"
 . setup/functions.sh     || exit 1
 
-say "Installing redis"
-apt_install redis-server php-redis php-apcu || die "Unable to install redis packages"
+if [ "$TRAVIS" == "true" ] && systemctl is-active --quiet redis-server
+then
+    say "TRAVIS redis already installed, not installing redis-server with apt"
+    
+else
+    say "Installing redis"
+    apt_install redis-server || die "Unable to install redis-server"
+fi
+
+# install redis php packages
+
+php="$REQUIRED_PHP_PACKAGE"
+apt_install $php-redis $php-apcu || die "Unable to install redis packages"
 
 # enable redis's local Unix socket (for redis on same server as nextcloud)
 

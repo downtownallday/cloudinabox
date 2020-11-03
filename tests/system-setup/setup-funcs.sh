@@ -171,6 +171,9 @@ ciab_install() {
     if [ $? -ne 0 ]; then
         H1 "OUTPUT OF SELECT FILES"
         dump_file "/var/log/syslog" 100
+        dump_file_if_exists "/var/log/redis/redis-server.log" 20
+        dump_file_if_exists "/var/log/mysql/error.log" 20
+        dump_nextcloud_log "/var/log/nextcloud/nextcloud.log" 10
         H2; H2 "End"; H2
         die "Setup failed!"
     fi
@@ -194,4 +197,33 @@ populate_by_name() {
         die "Does not exist: $populate_script"
     fi
     "$populate_script" || die "Failed: $populate_script"
+}
+
+
+dump_nextcloud_log() {
+    local log_file="$1"
+    local lines="$2"
+    local title="DUMP OF $log_file"
+    echo ""
+    echo "--------"
+    echo -n "-------- $log_file"
+    if [ ! -z "$lines" ]; then
+        echo " (last $line lines)"
+    else
+        echo ""
+    fi
+    echo "--------"
+
+    local jq="/usr/bin/jq -c '{t:.time,a:.app?,m:.message}'"
+    if [ ! -x /usr/bin/jq ]; then
+        jq="cat"
+    fi
+
+    if [ ! -e "$log_file" ]; then
+        echo "DOES NOT EXIST"
+    elif [ ! -z "$lines" ]; then
+        tail -$lines "$log_file" | $jq
+    else
+        cat "$log_file" | $jq
+    fi
 }

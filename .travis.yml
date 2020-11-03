@@ -13,6 +13,8 @@ jobs:
     os: linux
     dist: bionic
     name: vanilla-bionic    
+    services:
+      - redis-server
     install:
       - sudo tests/system-setup/vanilla.sh -v
     script:

@@ -25,6 +25,7 @@ tests/runner.sh default || exit 2
 SH
 
     # reboot may be required when updates were applied
+    m1.vm.boot_timeout = 600
     m1.vm.provision :reload
 
     # upgrade ubuntu

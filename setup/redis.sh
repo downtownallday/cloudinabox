@@ -8,7 +8,7 @@ if kernel_ipv6_lo_disabled; then
     # causes the installation to fail in the package postinstall
     # script. Deal with that here.
     say "Installing redis the Travis way"
-    apt-get install redis-server  # ignore error
+    apt-get install -y redis-server  # ignore error
     if [ $? -ne 0 ]; then
         tools/editconf.py -s /etc/redis/redis.conf "bind=127.0.0.1" || \
             die "could not edit /etc/redis/redis.conf"

@@ -10,11 +10,12 @@ This is an installation of Nextcloud that borrows some of the "Mail-in-a-Box" co
 1. system setup, upgrade, restore and reconfiguration through a single setup script
 1. encryption-at-rest
 1. fail2ban
-1. limiting installs to Ubuntu 18.04 and non-Dockerized
 
 See [Mail-in-a-Box LDAP](https://github.com/downtownallday/mailinabox-ldap).
 
 The primary purpose of this project is be able to easly deploy and maintain a cloud server (Nextcloud) for a home or small business, and together with Mail-in-a-Box LDAP, share a single user account database and similar installation and maintenance experiences. That said, both Mail-in-a-Box and Cloud-in-a-Box work just fine independently as well.
+
+Cloud-in-a-Box works only on Ubuntu 18 (Bionic) and Ubuntu 20 (Focal).
 
 
 ## Integration support with Mail-in-a-Box LDAP
@@ -30,9 +31,9 @@ Note that Mail-in-a-Box LDAP is a fork of Mail-in-a-Box that supports LDAP for u
 
 ## Installation
 
-1. on a fresh Ubuntu 18.04 system, install git `apt-get install git`
+1. on a fresh Ubuntu 18 (Bionic) or Ubuntu 20 (Focal) system, install git `apt-get install git`
 2. from your home directory, clone the source code repo `git clone https://github.com/downtownallday/cloudinabox.git cloudinabox`
-3. checkout the latest version `git checkout v0.2`
+3. checkout the latest version `git checkout v0.3`
 4. set your working directory to cloudinabox `cd cloudinabox`
 5. run setup as root `sudo setup/start.sh` (or sudo ehdd/start-encrypted.sh to use encryption-at-rest)
 
@@ -61,7 +62,7 @@ Similar to Mail-in-a-Box, upgrading Cloud-in-a-Box is simply a matter of re-runn
 
 1. set your working directory to cloudinabox `cd cloudinabox`
 1. get the latest source code `git pull`
-1. checkout the new version `git checkout v0.2`
+1. checkout the new version `git checkout v0.3`
 1. run setup `sudo setup/start.sh`
 
 However, Nextcloud upgrades are handled by you using the Nextcloud user interface or directly using `occ` commands from the command line. You will find `occ` in `/usr/local/nextcloud`.

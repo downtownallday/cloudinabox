@@ -1,0 +1,5 @@
+v0.3
+
+Add support Ubuntu 20 focal foss
+Add vagrant and Travis CI automated tests
+Synchronize miab-ldap shared code

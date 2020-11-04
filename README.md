@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/downtownallday/cloudinabox.svg?branch=master)](https://travis-ci.org/downtownallday/cloudinabox)
+
 # Cloud-in-a-Box
 
 This is an installation of Nextcloud that borrows some of the "Mail-in-a-Box" code and standards, such as:

@@ -4,27 +4,14 @@ env:
   - CLOUD_IN_A_BOX_PROJECT=true
 
 os: linux
-dist: bionic
+dist: focal
 
 jobs:
   fast_finish: true
   include:
-  # JOB: CiaB vanilla on bionic
-  - env:
-      - PRIMARY_HOSTNAME=box1.abc.com
-    language: shell
-    os: linux
-    dist: bionic
-    name: vanilla-bionic
-    install:
-      - sudo tests/system-setup/vanilla.sh -v
-    script:
-      # launch automated tests
-      - sudo tests/runner.sh -dumpoutput default
-
   # JOB: CiaB vanilla on focal
   - env:
-      - PRIMARY_HOSTNAME=box2.abc.com
+      - PRIMARY_HOSTNAME=box1.abc.com
     language: shell
     os: linux
     dist: focal

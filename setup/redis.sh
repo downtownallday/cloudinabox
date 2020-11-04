@@ -10,10 +10,11 @@ if kernel_ipv6_lo_disabled; then
     say "Installing redis the Travis way"
     apt-get install -y redis-server  # ignore error
     if [ $? -ne 0 ]; then
+        say_verbose "Update bind parameter of redis.conf"
         tools/editconf.py /etc/redis/redis.conf -s "bind=127.0.0.1" || \
             die "could not edit /etc/redis/redis.conf"
-        systemctl start redis-server || \
-            die "cloud not start redis!"
+        systemctl reset-failed redis-server
+        #systemctl start redis-server || die "redis won't start!"
     fi
     
 else

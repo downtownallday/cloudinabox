@@ -14,7 +14,7 @@ Vagrant.configure("2") do |config|
 cd /cloudinabox
 source tests/vagrant/globals.sh || exit 1
 export PRIMARY_HOSTNAME=vanilla.local
-tests/system-setup/vanilla.sh; rc=$?
+tests/system-setup/vanilla.sh -v; rc=$?
 echo "EXITCODE: $rc"
 SH
   end

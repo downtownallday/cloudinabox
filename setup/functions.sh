@@ -167,7 +167,7 @@ download_link() {
     local cache_file_name="${4:-$(basename "$url")}"
     local cache_dir="${5:-$DOWNLOAD_CACHE_DIR}"
 
-    say_verbose "download_link: $url (cache=$cache, output_to=$output_to)" 1>&2
+    #say_verbose "download_link: $url (cache=$cache, output_to=$output_to)" 1>&2
     
     if [ -z "$cache_dir" ]; then
         say_verbose "No cache directory configured, not caching" 1>&2

@@ -12,6 +12,7 @@ jobs:
   # JOB: CiaB vanilla on focal
   - env:
       - PRIMARY_HOSTNAME=box1.abc.com
+      - DOWNLOAD_NEXTCLOUD_FROM_GITHUB=true
     language: shell
     os: linux
     dist: focal

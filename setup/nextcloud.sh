@@ -44,13 +44,13 @@ get_nc_download_url() {
     # Returns a url to download Nextcloud for the version specified.
     # The url is placed into global variable DOWNLOAD_URL
     #
-    # Specified the version desired to 3 positions as the first
-    # argument with no leading "v". eg: "19.0.0"
+    # Specify the version desired to 3 positions as the first argument
+    # with no leading "v". eg: "19.0.0"
     #
-    # leave the first argument blank for a url to the latest version
+    # Leave the first argument blank for a url to the latest version
     # for a fresh install (REQUIRED_NC_FOR_FRESH_INSTALLS)
     #
-    # unless DOWNLOAD_NEXTCLOUD_FROM_GITHUB is set to "true", this
+    # Unless DOWNLOAD_NEXTCLOUD_FROM_GITHUB is set to "true", this
     # function always returns a link directed at Nextcloud's download
     # servers.
     #

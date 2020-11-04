@@ -290,7 +290,10 @@ def check_free_memory(rounded_values, env, output):
 def get_ssh_port():
 	# Returns ssh port
 	try:
-		output = shell('check_output', ['sshd', '-T'])
+		output = subprocess.check_output(
+			[ '/usr/sbin/sshd', '-T' ],
+			stderr=subprocess.DEVNULL  # drop warnings (eg, deprecated option)
+		).decode('utf-8')
 	except FileNotFoundError:
 		# sshd is not installed. That's ok.
 		return None

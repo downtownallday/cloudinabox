@@ -1,17 +1,13 @@
 
 . setup/functions-miab.sh
+. setup/functions-downloads-miab.sh
 
 # turn off "strict" mode
 set +e
 set +u
 set +o pipefail
 
-declare -i verbose
 
-while [ "$1" == "-v" ]; do
-    let verbose="${verbose:-0} + 1"
-    shift
-done
 
 #
 # replace this mail-in-a-box function
@@ -45,26 +41,6 @@ function hide_output {
 	rm -f $OUTPUT
 }
 
-
-
-die() {
-    echo "FATAL: $1" 1>&2
-    exit 1
-}
-
-is_verbose() {
-    [ ${verbose:-0} -gt 0 ] && return 0
-    return 1
-}
-
-say() {
-    echo "$@"
-}
-
-say_verbose() {
-    is_verbose && echo "$@"
-    return 0
-}
 
 array_contains() {
 	local searchfor="$1"
@@ -158,102 +134,6 @@ else {print(\$CONFIG['$name']);}"
     
     VALUE="$default_value"
     return 0
-}
-
-download_link() {
-    local url="$1"
-    local output_to="${2:to-stdout}"
-    local cache="${3:use-cache}"
-    local cache_file_name="${4:-$(basename "$url")}"
-    local cache_dir="${5:-$DOWNLOAD_CACHE_DIR}"
-
-    #say_verbose "download_link: $url (cache=$cache, output_to=$output_to)" 1>&2
-    
-    if [ -z "$cache_dir" ]; then
-        say_verbose "No cache directory configured, not caching" 1>&2
-        cache="no-cache"
-        
-    elif [ "$cache" == "use-cache" ]; then
-        mkdir -p "$cache_dir" >/dev/null
-        if [ $? -ne 0 ]; then
-            say_verbose "Could not create cache dir, not caching" 1>&2
-            cache="no-cache"
-        fi
-        if [ ! -w "$cache_dir" ]; then
-            say_verbose "Cache dir is not writable, not caching" 1>&2
-            cache="no-cache"
-        fi
-    fi
-
-    if [ "$cache" != "use-cache" ]; then
-        # do not use the cache
-        if [ "$output_to" == "to-stdout" ]; then
-            DOWNLOAD_FILE=""
-            curl -s "$url"
-        
-        else
-            DOWNLOAD_FILE="/tmp/download_file.$$.$(date +%s)"
-            curl -s "$url" > "$DOWNLOAD_FILE"
-        fi
-
-        [ $? -eq 0 ] && return 0
-        return 1
-    fi
-    
-    # use the cache
-    local cache_dst="$cache_dir/$cache_file_name"
-    local tmp_dst="/tmp/download_file.$$.$(date +%s)"
-    local code=1
-    
-    if [ -e "$cache_dst" ]; then
-        # cache file exists, download with 'if-modified-since'
-        say_verbose "Download (if-modified-since) $url" 1>&2
-        curl -z "$cache_dst" -s "$url" > "$tmp_dst"
-        code=$?
-        
-        if [ $code -eq 0 ]; then
-            if [ -s "$tmp_dst" ]; then
-                # non-empty download file, cache it
-                say_verbose "Modifed - caching to: $cache_dst" 1>&2
-                rm -f "$cache_dst" >/dev/null && \
-                    mv "$tmp_dst" "$cache_dst" >/dev/null
-                code=$?
-                
-            else
-                # cache file is up-to-date
-                say_verbose "Not modifed" 1>&2
-                rm -f "$tmp_dst" >/dev/null
-            fi
-        fi
-        
-    else
-        # cache file does not exist
-        say_verbose "Download $url" 1>&2
-        curl -s "$url" > "$tmp_dst"
-        code=$?
-        if [ $code -eq 0 ]; then
-            say_verbose "Caching to: $cache_dst" 1>&2
-            rm -f "$cache_dst" >/dev/null && \
-                mv "$tmp_dst" "$cache_dst" >/dev/null
-            code=$?
-        else
-            rm -f "$tmp_dst" >/dev/null
-        fi
-    fi
-    
-    if [ $code -eq 0 ]; then
-        if [ "$output_to" == "to-stdout" ]; then
-            DOWNLOAD_FILE=""
-            cat "$cache_dst"
-            [ $? -eq 0 ] && return 0
-            return 1
-        else
-            DOWNLOAD_FILE="$cache_dst"
-            return 0
-        fi
-    else
-        return 1
-    fi
 }
 
 

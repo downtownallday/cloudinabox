@@ -40,111 +40,6 @@ EOF
 }
 
 
-get_nc_download_url() {
-    # Returns a url to download Nextcloud for the version specified.
-    # The url is placed into global variable DOWNLOAD_URL
-    #
-    # Specify the version desired to 3 positions as the first argument
-    # with no leading "v". eg: "19.0.0"
-    #
-    # Leave the first argument blank for a url to the latest version
-    # for a fresh install (REQUIRED_NC_FOR_FRESH_INSTALLS)
-    #
-    # Unless DOWNLOAD_NEXTCLOUD_FROM_GITHUB is set to "true", this
-    # function always returns a link directed at Nextcloud's download
-    # servers.
-    #
-    local ver="$1"
-    local url=""
-    local url_cache_id=""
-
-    if [ "$DOWNLOAD_NEXTCLOUD_FROM_GITHUB" == "true" ]; then
-        # use Github REST API to obtain latest version and link. if
-        # unsuccessful, fall back to using Nextcloud
-        local github_ver=""
-        if [ ! -z "$ver" ]; then
-            github_ver="v${ver}"
-            url="https://github.com/nextcloud/server/releases/download/${github_ver}/nextcloud-${ver}.tar.bz2"
-            url_cache_id="nextcloud-${ver}.tar.bz2"
-            
-        else
-            local latest="${REQUIRED_NC_FOR_FRESH_INSTALLS}"
-
-            if [ "$latest" == "latest" ]; then
-                github_ver=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/nextcloud/server/tags 2>/dev/null | jq  -r '.[].name' | grep -v -i -E '(RC|beta)' | head -1)  #eg: "v20.0.1"
-            else
-                local major=$(awk -F- '{print $2}' <<<"$latest")
-                github_ver=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/nextcloud/server/tags 2>/dev/null | jq  -r '.[].name' | grep "^v$major\\." | grep -v -i -E '(RC|beta)' | head -1)  #eg: "v20.0.1"
-            fi
-
-            if [ $? -ne 0 ]; then
-                say_verbose "Github API call failed! Using Nextcloud's server."
-                # fall through and use nextcloud's download site
-            else
-                local github_plain_ver=$(awk -Fv '{print $2}' <<<"$github_ver")
-                url="https://github.com/nextcloud/server/releases/download/$github_ver/nextcloud-${github_plain_ver}.tar.bz2"
-                url_cache_id="nextcloud-${github_plain_ver}.tar.bz2"
-
-            fi
-        fi
-
-        if [ ! -z "$url" ]; then
-            # ensure the download exists - sometimes Github releases
-            # only have sources and not a .bz2 file. In that case we
-            # have to revert to using nextcloud's download server
-            local http_status
-            http_status="$(curl -s -L --head -w "%{http_code}" "$url" |tail -1)"
-            local code=$?
-            if [ $code -ne 0 ]; then
-                say_verbose "Problem contacting Github to verify a download url ($code)"
-                url=""
-                
-            elif [ "$http_status" != "403" -a "$http_status" != "200" ]; then
-                say_verbose "Github doesn't have a download for $github_ver ($http_status)"
-                url=""
-                
-            else
-                # Github returns an html page with a redirect link
-                # .. we have to extract the link
-                local content
-                content=$(download_link "$url" to-stdout no-cache)
-                if [ $? -ne 0 ]; then
-                    say_verbose "Unable to get Github download redir page"
-                    url=""
-                    
-                else
-                    #say_verbose "Got github redirect page content: $content"
-                    content=$(python3 -c "import xml.etree.ElementTree as ET; tree=ET.fromstring(r'$content'); els=tree.findall('.//a'); print(els[0].attrib['href'])" 2>/dev/null)
-                    if [ $? -ne 0 ]; then
-                        say_verbose "Unable to parse Github redirect html"
-                        url=""
-                        
-                    else
-                        say_verbose "Github redirected to $content"
-                        url="$content"
-                    fi
-                fi
-            fi
-        fi
-    fi
-    
-
-    if [ -z "$url" ]; then
-        if [ -z "$ver" ]; then
-            url="https://download.nextcloud.com/server/releases/${REQUIRED_NC_FOR_FRESH_INSTALLS}.tar.bz2"
-            url_cache_id="${REQUIRED_NC_FOR_FRESH_INSTALLS}.tar.bz2"
-
-        else
-            url="https://download.nextcloud.com/server/releases/nextcloud-${ver}.tar.bz2"
-            url_cache_id="nextcloud-${ver}.tar.bz2"
-        fi        
-    fi
-
-    DOWNLOAD_URL="$url"
-    DOWNLOAD_URL_CACHE_ID="$url_cache_id"
-    return 0
-}
-
 download_nextcloud() {
     #
     # DOWNLOAD and extract Nextcloud sources
@@ -230,9 +125,9 @@ install_nextcloud() {
 
     if [ $installed -eq 0 ]; then
         say_verbose "Running Nextcloud installation"
-        local verbose=""
-        is_verbose && verbose="-vvv"
-        sudo -E -u www-data $phpx $NCDIR/occ  maintenance:install $verbose --database "mysql" --database-name "$NC_SQL_DB"  --database-user "$NC_SQL_USER" --database-pass "$NC_SQL_PASSWORD" --admin-user "admin" --admin-pass "$SQL_ROOT_PASSWORD" --data-dir "$NCDATA"
+        local occargs=""
+        is_verbose && occargs="-vvv"
+        sudo -E -u www-data $phpx $NCDIR/occ  maintenance:install $occargs --database "mysql" --database-name "$NC_SQL_DB"  --database-user "$NC_SQL_USER" --database-pass "$NC_SQL_PASSWORD" --admin-user "admin" --admin-pass "$SQL_ROOT_PASSWORD" --data-dir "$NCDATA"
         if [ $? -ne 0 ]; then
             die "Nextcloud occ maintenance:install failed"
         fi

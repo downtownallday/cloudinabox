@@ -7,9 +7,11 @@
 NCDIR=/usr/local/nextcloud
 CONF="$STORAGE_ROOT/integrations.conf"
 
-
-mkdir -p "$(dirname "$CONF")"
-touch "$CONF" || die "Could not touch $CONF"
+if [ ! -e "$CONF" ]; then
+    mkdir -p "$(dirname "$CONF")"
+    touch "$CONF" || die "Could not touch $CONF"
+    chmod 640 "$CONF" || die "Could not change permissions of $CONF"
+fi
 
 # load previous values only if running interactively
 if [ -z "$NONINTERACTIVE" ]; then

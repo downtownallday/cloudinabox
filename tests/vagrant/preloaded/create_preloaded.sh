@@ -39,5 +39,7 @@ do
     mv package.box $box.box
 
     vagrant destroy -f $box
+    cached_name="$(sed 's/preloaded-/preloaded-ciab-/' <<<"$box")"
+    vagrant box remove $cached_name
 done
 

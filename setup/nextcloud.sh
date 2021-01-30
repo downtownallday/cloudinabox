@@ -155,11 +155,11 @@ EOF
         sudo -E -u www-data $phpx $NCDIR/occ maintenance:mode --off
         [ $? -ne 0 ] && errors+=("occ maintenance:mode --off failed")
         sudo -E -u www-data $phpx $NCDIR/occ maintenance:repair -q
-        [ $? -ne 0 ] && errors+=("occ maintenance:repair failed")
+        #[ $? -ne 0 ] && errors+=("occ maintenance:repair failed")
         sudo -E -u www-data $phpx $NCDIR/occ db:add-missing-indices -q
         [ $? -ne 0 ] && errors+=("occ db:add-missing-indices failed")
         sudo -E -u www-data $phpx $NCDIR/occ files:scan --all
-        [ $? -ne 0 ] && errors+=("occ files:scan --all failed")
+        #[ $? -ne 0 ] && errors+=("occ files:scan --all failed")
     fi
 
 
@@ -270,7 +270,7 @@ restore_apps() {
         if ! array_contains "$app" ${actual[@]}; then
             say_verbose "Install missing app: $app"
             sudo -E -u www-data $phpx $NCDIR/occ app:install "$app" -q --no-interaction
-            [ $? -ne 0 ] && die "Could not install Nextcloud app $app"
+            [ $? -ne 0 ] && say "Could not install Nextcloud app $app"
         fi
     done
 }

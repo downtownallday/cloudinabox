@@ -15,7 +15,7 @@ usage() {
     echo ""
     echo "  path-to-restore-to:"
     echo "     the directory where the restored files are placed. the default location is"
-    echo "     /home/user-data. FILES IN THIS DIRECTORY WILL BE REPLACED."
+    echo "     /home/user-data. FILES IN THIS DIRECTORY WILL BE REPLACED. IF THIS IS A MOUNT POINT ENTER A SUBDIRECTORY OF THE MOUNT POINT THEN MANUALLY MOVE THE FILES BACK ONE LEVEL BECAUSE DUPLICITY AUTOMATICALLY UNMOUNTS IT!"
     echo ""
     echo "If you're using encryption-at-rest, make sure it's mounted before restoring"
     echo "eg: run ehdd/mount.sh"
@@ -60,7 +60,11 @@ echo "Ensure mariadb is installed so mysql user and group are available"
 apt-get install -y -qq mariadb-server
 
 echo "Restoring with duplicity"
-duplicity restore --force "file://$backup_files_dir" "$restore_to_dir" 2>&1 | (
+opts=""
+if [ -e "$restore_to_dir" ]; then
+    opts="--force"
+fi
+duplicity restore $opts "file://$backup_files_dir" "$restore_to_dir" 2>&1 | (
     code=0
     while read line; do
 	echo "$line"

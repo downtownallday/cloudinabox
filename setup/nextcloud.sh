@@ -335,6 +335,14 @@ server {
       return 301 \$scheme://\$host:\$server_port/remote.php/dav;
     }
 
+    location = /.well-known/webfinger {
+      return 301 /index.php$uri;
+    }
+
+    location = /.well-known/nodeinfo {
+      return 301 /index.php$uri;
+    }
+
     # set max upload size
     client_max_body_size 512M;
     fastcgi_buffers 64 4K;
@@ -437,6 +445,9 @@ EOF
 
 
 say "Installing Nextcloud"
+
+# install additional packages (now needed for NC21)
+apt_install imagemagick
 
 # update ciab_sql.conf to include nextcloud variables (and loads it)
 update_sql_conf

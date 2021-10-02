@@ -10,6 +10,7 @@ This is an installation of Nextcloud that borrows some of the "Mail-in-a-Box" co
 1. system setup, upgrade, restore and reconfiguration through a single setup script
 1. encryption-at-rest
 1. fail2ban
+1. setup modificiation through mods
 
 See [Mail-in-a-Box LDAP](https://github.com/downtownallday/mailinabox-ldap).
 
@@ -35,7 +36,7 @@ Note that Mail-in-a-Box LDAP is a fork of Mail-in-a-Box that supports LDAP for u
 2. from your home directory, clone the source code repo `git clone https://github.com/downtownallday/cloudinabox.git cloudinabox`
 3. checkout the latest version `git checkout v0.3`
 4. set your working directory to cloudinabox `cd cloudinabox`
-5. run setup as root `sudo setup/start.sh` (or sudo ehdd/start-encrypted.sh to use encryption-at-rest)
+5. run setup as root `sudo setup/start.sh` (or `sudo ehdd/start-encrypted.sh` to use encryption-at-rest)
 
 To integrate with Mail-in-a-Box LDAP, you will also need root acess to the Mail-in-a-Box LDAP system to:
 

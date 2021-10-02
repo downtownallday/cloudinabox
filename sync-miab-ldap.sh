@@ -70,11 +70,15 @@ ciab_files=(
     ./tests/suites/_init.sh
     ./conf/nginx-ssl.conf
     ./setup/remote-nextcloud-use-miab.sh
+    ./setup/mods.available/README.md
+    ./setup/mods.available/coturn.sh
 )
 miab_files=(
     $miabdir/tests/suites/_init.sh
     $miabdir/conf/nginx-ssl.conf
     $miabdir/setup/mods.available/remote-nextcloud-use-miab.sh
+    $miabdir/setup/mods.available/README.md
+    $miabdir/setup/mods.available/coturn.sh
 )
 
 

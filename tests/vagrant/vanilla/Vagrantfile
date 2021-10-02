@@ -3,18 +3,18 @@ load '../funcs.rb'
 Vagrant.configure("2") do |config|
 
   config.vm.synced_folder "../../..", "/cloudinabox", id: "cloudinabox", automount: false
-  config.vm.network "public_network"
+  config.vm.network "public_network", bridge: "#$default_network_interface"
 
   # vanilla install
 
   config.vm.define "vanilla" do |m1|
-    use_preloaded_box m1,"ubuntu/bionic64",".."
-    #use_preloaded_box m1,"ubuntu/focal64"
+    #use_preloaded_box m1,"ubuntu/bionic64",".."
+    use_preloaded_box m1,"ubuntu/focal64",".."
     m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
 source tests/vagrant/globals.sh || exit 1
 export PRIMARY_HOSTNAME=vanilla.local
-tests/system-setup/vanilla.sh -v; rc=$?
+tests/system-setup/vanilla.sh -v --enable-mod=coturn; rc=$?
 echo "EXITCODE: $rc"
 SH
   end

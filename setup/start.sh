@@ -161,6 +161,23 @@ elif [ "$ALERTS_EMAIL_HAS_CHANGED" == "yes" ]; then
 fi
 
 
+#
+# Run setup mods 
+#
+local_dir="${LOCAL_MODS_DIR:-local}"
+mod_count=0
+if [ -d "${LOCAL_MODS_DIR:-local}" ]; then
+    for mod in $(ls "$local_dir" | grep -v '~$'); do
+        if [ -x "$local_dir/$mod" ]; then
+            "$local_dir/$mod" || die "Local mod '$mod' failed with exit code $?"
+            let mod_count+=1
+        fi
+    done
+fi
+if [ $mod_count -eq 0 ]; then
+    echo "No setup mods are enabled. To customize setup, please see setup/mods.available/README.md"
+fi
+
 
 # run status checks
 python3 management/status_checks.py

@@ -336,11 +336,11 @@ server {
     }
 
     location = /.well-known/webfinger {
-      return 301 /index.php$uri;
+      return 301 /index.php\$uri;
     }
 
     location = /.well-known/nodeinfo {
-      return 301 /index.php$uri;
+      return 301 /index.php\$uri;
     }
 
     # set max upload size

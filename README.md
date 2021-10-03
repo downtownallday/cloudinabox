@@ -10,7 +10,7 @@ This is an installation of Nextcloud that borrows some of the "Mail-in-a-Box" co
 1. system setup, upgrade, restore and reconfiguration through a single setup script
 1. encryption-at-rest
 1. fail2ban
-1. setup modificiation through mods
+1. setup modificiation - see [setup mods](setup/mods.available/README.md)
 
 See [Mail-in-a-Box LDAP](https://github.com/downtownallday/mailinabox-ldap).
 

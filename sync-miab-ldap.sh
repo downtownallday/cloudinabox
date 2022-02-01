@@ -55,7 +55,7 @@ sync_recursive() {
         echo "Syncing $dst"
         rsync -a --dry-run "$src" "$dst"
     else
-        rsync -a "$src" "$dst"
+        rsync -v -a "$src" "$dst"
     fi
 }
 

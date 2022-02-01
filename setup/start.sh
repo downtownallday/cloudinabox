@@ -2,6 +2,14 @@
 
 . setup/functions.sh     || exit 1
 
+if [ "$OS_NAME" != "Ubuntu" ]; then
+    die "Sorry, cloud-in-a-box is only supported on Ubuntu Linux"
+fi
+
+if [ $OS_MAJOR -ne 20 -a $OS_MAJOR -ne 22 ]; then
+    die "Sorry, this version of cloud-in-a-box only works on Ubuntu 20 (Focal) and 22 (Jammy)"
+fi
+
 if [ $EUID -ne 0 ]; then
     echo "Must be run as root"
     exit 1

@@ -13,10 +13,21 @@ done
 
 vagrant box update
 
-for box in "preloaded-ubuntu-bionic64" "preloaded-ubuntu-focal64"
+for box in "preloaded-ubuntu-focal64" "preloaded-ubuntu-jammy64"
 do
     vagrant up $box
     upcode=$?
+    if [ $upcode -ne 0 -a ! -e "./prepcode.txt" ]
+    then
+        # a reboot may be necessary if guest addtions was newly
+        # compiled by vagrant plugin "vagrant-vbguest"
+        echo ""
+        echo "VAGRANT UP RETURNED $upcode -- RETRYING AFTER REBOOT"
+        vagrant halt $box
+        vagrant up $box
+        upcode=$?
+    fi
+
     prepcode=$(cat "./prepcode.txt")
     rm -f prepcode.txt
     echo ""

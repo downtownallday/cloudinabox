@@ -29,13 +29,6 @@ sed -i "s/python3-dev/python3-dateutil/g" setup/system-miab-mods.sh \
 sed -i "s/python3-pip/python3-dnspython python3-psutil xz-utils jq/g" setup/system-miab-mods.sh \
     || die "Could not edit setup/system-miab-mods.sh"
 
-if [ $OS_MAJOR -gt 18 -a ! -e /etc/default/bind9 ]; then
-    # in ubuntu 20:
-    #    /etc/default/bind9 change to /etc/default/named
-    # create a symlink so editconf succeeds
-    ln -s named /etc/default/bind9
-fi
-
 source_miab_script "setup/system-miab-mods.sh"
 
 # turn off "info" messages from systemd

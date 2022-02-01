@@ -22,7 +22,7 @@ run_miab_web_sh() {
     sed -i "s/php-/$php-/g" setup/web-miab-mods.sh || die "$errmsg"
 
     # change hardcoded php version
-    sed -i "s/7\\.2/$phpver/g" setup/web-miab-mods.sh || die "$errmsg"
+    sed -i "s/8\\.0/$phpver/g" setup/web-miab-mods.sh || die "$errmsg"
     
     # don't restart any services -- we'll restart in this script
     sed -i 's/^restart_service .*/#\0/g' setup/web-miab-mods.sh || die "$errmsg"

@@ -1,6 +1,6 @@
 This directory contains optional scripts that are run as part of setup (as the last step). They are disabled by default. To use them, create a `local` directory containing symbolic links to the mods you care to enable.
 
-For example, to add coturn support for Nextcloud Talk do the following from the root directory of your installation directory:
+For example, to add coturn support for Nextcloud Talk do the following from the root directory of your installation:
 
 ```
 mkdir -p local
@@ -9,7 +9,7 @@ ln -s ../setup/mods.available/coturn.sh local/coturn.sh
 
 When `setup/start.sh` (or `ehdd/start-encrypted.sh`) are run, these scripts will be executed after setup has completed.
 
-Before enabling any mod scripts from `setup/mods.available` (or elsewhere), be aware that they will likely modify your system, and that removal of the script from `local` will not restore the system to its pre-script state. For example, enabling coturn, then removing the `local/coturn.sh` symlink, will not remove coturn from the system. It will still be active and enabled in systemd and firewall rules it added will still be in place.
+Before enabling any mod scripts from `setup/mods.available` (or elsewhere), be aware that they will likely modify your system, and that removal of the script from `local` will not restore the system to its pre-mod state. For example, enabling coturn, then removing the `local/coturn.sh` symlink, will not remove coturn from the system. It will still be active and enabled in systemd and firewall rules it added will still be in place.
 
 **Before enabling any setup mod, it's very important that you look at the script and understand what it's doing and how to remove it.**
 

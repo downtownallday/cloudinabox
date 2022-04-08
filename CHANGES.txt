@@ -1,3 +1,7 @@
+v0.6
+Add support for Ubuntu 22 jammy jellyfish
+Switch from Travis to Github Actions
+
 v0.3
 
 Add support Ubuntu 20 focal foss

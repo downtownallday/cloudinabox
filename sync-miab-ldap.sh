@@ -72,6 +72,7 @@ ciab_files=(
     ./setup/remote-nextcloud-use-miab.sh
     ./setup/mods.available/README.md
     ./setup/mods.available/coturn.sh
+    ./setup/mods.available/unattended-upgrades-mail.sh
 )
 miab_files=(
     $miabdir/tests/suites/_init.sh
@@ -79,6 +80,7 @@ miab_files=(
     $miabdir/setup/mods.available/remote-nextcloud-use-miab.sh
     $miabdir/setup/mods.available/README.md
     $miabdir/setup/mods.available/coturn.sh
+    $miabdir/setup/mods.available/unattended-upgrades-mail.sh
 )
 
 

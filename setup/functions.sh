@@ -159,7 +159,7 @@ get_required_php_version() {
     get_os_release
 
     # read the supported nextcloud versions matix file
-    local phpver
+    local phpver ncmin ncmax
     phpver=$(awk -F: "/^${OS_MAJOR}:/ { print \$2 }" conf/nextcloud_os_matrix.txt)
     [ $? -ne 0 ] && die "Unable to read conf/nextcloud_os_matrix.txt"
     [ -z "$phpver" ] && die "Unsupported OS version (OS_MAJOR=$OS_MAJOR) - see conf/nextcloud_os_matrix.txt"

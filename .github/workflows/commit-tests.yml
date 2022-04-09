@@ -16,8 +16,9 @@ jobs:
           sudo rm -rf /etc/mysql
           sudo rm -f /root/.my.cnf
           rm -f .my.cnf
-          sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
-          sudo /usr/sbin/apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
+          sudo systemctl reload apparmor.service
+          #sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
+          #sudo /usr/sbin/apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
       - name: update-alternatives
         run: sudo update-alternatives --set php /usr/bin/php7.4
       - name: setup

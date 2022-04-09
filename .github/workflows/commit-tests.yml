@@ -1,5 +1,5 @@
 name: commit-tests
-on: [push]
+on: [push, workflow_dispatch]
 jobs:
   # CiaB vanilla on focal
   vanilla-focal:

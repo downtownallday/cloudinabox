@@ -17,6 +17,7 @@ create_sql_conf() {
     if [ ! -e "$conf" ]; then
         say_verbose "Creating new $conf"
         mkdir -p "$(dirname "$conf")" || die "Unable to create directory for $conf"
+        chmod 755 "$(dirname "$conf")"
         cat > "$conf" <<EOF
 SQL_ROOT_PASSWORD=
 DATA_DIR_CREATED=no

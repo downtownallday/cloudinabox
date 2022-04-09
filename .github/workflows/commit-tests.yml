@@ -9,6 +9,7 @@ jobs:
       PRIMARY_HOSTNAME: box1.abc.com
     steps:
       - uses: actions/checkout@v2
+      - run: sudo -E apt purge *mysql*
       - name: setup
         run: sudo -E tests/system-setup/vanilla.sh -v
       - name: test-runner

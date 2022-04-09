@@ -32,8 +32,30 @@ create_backup_py() {
         die "'WHITE_' found in management/backup-miab.py, refusing to continue"
     fi
     
-    echo "# GENERATED FILE - DO NOT EDIT - GENERATED FROM backup-miab.py" > "management/backup.py" || die "Could not create backup.py"
+    cat  >"management/backup.py" <<EOF
+#!/usr/bin/python3
+# GENERATED FILE - DO NOT EDIT - GENERATED FROM backup-miab.py
 
+# Running this script without arguments will perform a backup.
+#
+# Backups can be customized by creating a
+# /home/user-data/backup/custom.yaml file with the following format:
+#
+# min_age_in_days: 3
+# target: local
+#
+# in addition, for duplicity targets that require authentication (eg
+# S3), specify credentials in:
+#
+# target_user: <user>
+# target_pass: <pass>
+#
+# "target" may be "off" to disable backups, or any valid duplicity target
+#    
+
+EOF
+[ $? -ne 0 ] && die "Could not create backup.py"
+    
     # Change the python code of the "perform_backup" function:
     #   1. comment out lines we don't want
     #   2. For the blocks of code that execute service_command("stop") and
@@ -120,6 +142,9 @@ IN_DEF && /wait_for_service/ { print "# "$0; next }
     # test validity
     python3 -m py_compile management/backup.py ||
         die "The generated file backup.py failed compilation! Cannot continue"
+
+    # set execute permissions
+    chmod +x management/backup.py
 }
 
 

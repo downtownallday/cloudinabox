@@ -65,6 +65,7 @@ create_datadir() {
     say_verbose "Initialize sql data directory"
     mkdir -p "$SQL_DATADIR" || die "Unable to create $SQL_DATADIR"
     chmod 770 "$SQL_DATADIR" || failed=yes
+    chown mysql "$SQL_DATADIR" || failed=yes
     mkdir -p "$SQL_DATABACKUPDIR" || die "Unable to create $SQL_DATABACKUPDIR"
     chmod 750 "$SQL_DATABACKUPDIR" || failed=yes
 

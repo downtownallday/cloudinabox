@@ -14,6 +14,7 @@ cd "$(dirname $0)"
 
 default_suites=(
     nextcloud-basic
+    management
 )
 
 extra_suites=(

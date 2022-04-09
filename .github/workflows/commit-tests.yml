@@ -9,11 +9,17 @@ jobs:
       PRIMARY_HOSTNAME: box1.abc.com
     steps:
       - uses: actions/checkout@v2
-      - run: sudo apt-get remove --purge mysql* libmysql*
-      - run: sudo rm -rf /etc/mysql
-      - run: sudo rm -f /root/.my.cnf
-      - run: rm -f .my.cnf
-      - run: sudo update-alternatives --set php /usr/bin/php7.4
+      # remove mysql server
+      - name: remove-mysql-server
+        run: |
+          sudo apt-get remove --purge mysql* libmysql*
+          sudo rm -rf /etc/mysql
+          sudo rm -f /root/.my.cnf
+          rm -f .my.cnf
+          sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
+          sudo /usr/sbin/apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
+      - name: update-alternatives
+        run: sudo update-alternatives --set php /usr/bin/php7.4
       - name: setup
         run: sudo -E tests/system-setup/vanilla.sh -v
       - name: test-runner

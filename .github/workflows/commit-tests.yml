@@ -12,13 +12,12 @@ jobs:
       # remove mysql server
       - name: remove-mysql-server
         run: |
+          sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
+          sudo /usr/sbin/apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
           sudo apt-get remove --purge mysql* libmysql*
           sudo rm -rf /etc/mysql
           sudo rm -f /root/.my.cnf
           rm -f .my.cnf
-          sudo systemctl stop apparmor.service
-          sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
-          #sudo /usr/sbin/apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
       - name: update-alternatives
         run: sudo update-alternatives --set php /usr/bin/php7.4
       - name: setup

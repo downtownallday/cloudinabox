@@ -18,6 +18,10 @@ The primary purpose of this project is be able to easly deploy and maintain a cl
 
 Cloud-in-a-Box works only on Ubuntu 20 (Focal) and Ubuntu 22 (Jammy).
 
+For current users: if you're currently on Ubuntu 20 (Focal) and wish to upgrade to Ubuntu 22 (Jammy), your Nextcloud installation MUST BE AT VERSION 24 OR HIGHER. Do not upgrade to Jammy without first upgrading Nextcloud.
+
+If you're running on Ubuntu 18 (Bionic), you'll have to upgrade to Ubuntu 20 (Focal) first, then check out the latest cloudinabox code, then re-run setup, then upgrade Nextcloud to version 24+, then upgrade to Jammy.
+
 
 ## Integration support with Mail-in-a-Box LDAP
 
@@ -34,7 +38,7 @@ Note that Mail-in-a-Box LDAP is a fork of Mail-in-a-Box that supports LDAP for u
 
 1. on a fresh Ubuntu 20 (Focal) or Ubuntu 22 (Jammy) system, install git `apt-get install git`
 2. from your home directory, clone the source code repo `git clone https://github.com/downtownallday/cloudinabox.git cloudinabox`
-3. checkout the latest version `git checkout v0.3`
+3. checkout the latest version `git checkout v0.5`
 4. set your working directory to cloudinabox `cd cloudinabox`
 5. run setup as root `sudo setup/start.sh` (or `sudo ehdd/start-encrypted.sh` to use encryption-at-rest)
 

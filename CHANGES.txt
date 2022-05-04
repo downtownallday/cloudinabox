@@ -1,3 +1,9 @@
+v0.4
+fix config.yaml loading for backup configuration
+add github actions and tests
+fix nc webfinger/nodeinfo nginx redirection
+other minor bug fixes
+
 v0.3
 
 Add support Ubuntu 20 focal foss

@@ -170,8 +170,10 @@ get_required_php_version() {
 
     
     # on return, these globals are set
-    REQUIRED_NC_FOR_FRESH_INSTALLS="latest"
-    [ ! -z "$ncmax" ] && REQUIRED_NC_FOR_FRESH_INSTALLS="latest-$ncmax"
+    if [ -z "$REQUIRED_NC_FOR_FRESH_INSTALLS" ]; then
+        REQUIRED_NC_FOR_FRESH_INSTALLS=latest
+        [ ! -z "$ncmax" ] && REQUIRED_NC_FOR_FRESH_INSTALLS="latest-$ncmax"
+    fi
     REQUIRED_PHP_PACKAGE="php$phpver"
     REQUIRED_PHP_VERSION="$phpver"
     REQUIRED_PHP_EXECUTABLE="/usr/bin/php$phpver"

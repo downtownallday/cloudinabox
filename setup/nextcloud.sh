@@ -79,7 +79,11 @@ download_nextcloud() {
     else
         say_verbose "Extracting: $DOWNLOAD_FILE"
         mkdir -p "$NCDIR" || die "Unable to create $NCDIR"
-        (cd "$(dirname "$NCDIR")"; tar -xjf "$DOWNLOAD_FILE")
+        (cd "$(dirname "$NCDIR")"; tar -xf "$DOWNLOAD_FILE")
+        if [ $? -ne 0 ]; then
+            rm -f "$DOWNLOAD_FILE"
+            die "Bad download file"
+        fi
     fi
     
     chown -R www-data:www-data "$NCDIR"

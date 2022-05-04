@@ -1,0 +1,26 @@
+name: commit-tests
+on: [push, workflow_dispatch]
+jobs:
+  # CiaB vanilla on focal
+  vanilla-focal:
+    runs-on: ubuntu-20.04
+    env:
+      DOWNLOAD_NEXTCLOUD_FROM_GITHUB: true
+      PRIMARY_HOSTNAME: box1.abc.com
+    steps:
+      - uses: actions/checkout@v2
+      # remove mysql server
+      - name: remove-mysql-server
+        run: |
+          sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
+          sudo /usr/sbin/apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
+          sudo apt-get remove --purge mysql* libmysql*
+          sudo rm -rf /etc/mysql
+          sudo rm -f /root/.my.cnf
+          rm -f .my.cnf
+      - name: update-alternatives
+        run: sudo update-alternatives --set php /usr/bin/php7.4
+      - name: setup
+        run: sudo -E tests/system-setup/vanilla.sh -v
+      - name: test-runner
+        run: sudo -E tests/runner.sh -dumpoutput default

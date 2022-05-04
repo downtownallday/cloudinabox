@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/downtownallday/cloudinabox.svg?branch=master)](https://travis-ci.org/downtownallday/cloudinabox)
+[![build](https://github.com/downtownallday/cloudinabox/actions/workflows/commit-tests.yml/badge.svg)](https://github.com/downtownallday/cloudinabox/actions)
 
 # Cloud-in-a-Box
 

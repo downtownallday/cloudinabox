@@ -13,8 +13,9 @@ Vagrant.configure("2") do |config|
     m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
 source tests/vagrant/globals.sh || exit 1
-export PRIMARY_HOSTNAME=vanilla.local
-tests/system-setup/vanilla.sh -v --enable-mod=coturn; rc=$?
+export PRIMARY_HOSTNAME=vanilla-ciab.local
+#export REQUIRED_NC_FOR_FRESH_INSTALLS=24.0.0rc3
+tests/system-setup/vanilla.sh -v; rc=$?  # --enable-mod=coturn
 echo "EXITCODE: $rc"
 SH
   end

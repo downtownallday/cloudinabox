@@ -1,3 +1,6 @@
+#
+# requires:
+#    scripts: [ misc.sh ]
 
 wait_for_apt() {
     # check to see if other package managers have a lock on new
@@ -49,11 +52,18 @@ dump_file_if_exists() {
 }
 
 update_system_time() {
-    if [ ! -x /usr/sbin/ntpdate ]; then
-        wait_for_apt
-        apt-get install -y -qq ntpdate || return 1
+    if systemctl is-active --quiet ntp; then
+        # ntpd is running and running ntpdate will fail with "the NTP
+        # socket is in use"
+        echo "ntpd is already running, not updating time"
+        return 0
     fi
-    ntpdate -s ntp.ubuntu.com && echo "System time updated"
+    if [ ! -x /usr/sbin/ntpdate ]; then
+        echo "Installing ntpdate"
+        wait_for_apt
+        exec_no_output apt-get install -y ntpdate || return 1
+    fi
+    ntpdate ntp.ubuntu.com
 }
 
 set_system_hostname() {
@@ -110,3 +120,55 @@ install_docker() {
         || return 5
 }
 
+
+exec_no_output() {
+	# This function hides the output of a command unless the command
+	# fails
+	local of=$(mktemp)
+	"$@" &> "$of"
+	local code=$?
+
+	if [ $code -ne 0 ]; then
+		echo "" 1>&2
+		echo "FAILED: $@" 1>&2
+		echo "-----------------------------------------" 1>&2
+        echo "Return code: $code" 1>&2
+        echo "Output:" 1>&2
+		cat "$of" 1>&2
+		echo "-----------------------------------------" 1>&2
+	fi
+
+	# Remove temporary file.
+	rm -f "$of"
+    [ $code -ne 0 ] && return 1
+	return 0
+}
+
+git_clone() {
+    local REPO="$1"
+    local TREEISH="$2"
+    local TARGETPATH="$3"
+    local OPTIONS="$4"
+
+    if [ ! -x /usr/bin/git ]; then
+        exec_no_output apt-get install -y git || return 1
+    fi
+
+    if ! array_contains "keep-existing" $OPTIONS || \
+            [ ! -d "$TARGETPATH" ] || \
+            [ -z "$(ls -A "$TARGETPATH")" ]
+    then
+        rm -rf "$TARGETPATH"
+        git clone "$REPO" "$TARGETPATH"
+        if [ $? -ne 0 ]; then
+            rm -rf "$TARGETPATH"
+            return 1
+        fi
+    fi
+
+    if [ ! -z "$TREEISH" ]; then
+        pushd "$TARGETPATH" >/dev/null
+        git checkout "$TREEISH" || return 2
+        popd >/dev/null
+    fi
+}

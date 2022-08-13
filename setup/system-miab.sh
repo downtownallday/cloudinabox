@@ -97,6 +97,13 @@ fi
 # come from there and minimal Ubuntu installs may have it turned off.
 hide_output add-apt-repository -y universe
 
+# Install the duplicity PPA.
+hide_output add-apt-repository -y ppa:duplicity-team/duplicity-release-git
+
+# Stock PHP is now 8.1, but we're transitioning through 8.0 because
+# of Nextcloud.
+hide_output add-apt-repository --y ppa:ondrej/php
+
 # ### Update Packages
 
 # Update system packages to make sure we have the latest upstream versions
@@ -119,9 +126,6 @@ fi
 
 # Install basic utilities.
 #
-# * haveged: Provides extra entropy to /dev/random so it doesn't stall
-#	         when generating random numbers for private keys (e.g. during
-#	         ldns-keygen).
 # * unattended-upgrades: Apt tool to install security updates automatically.
 # * cron: Runs background processes periodically.
 # * ntp: keeps the system time correct
@@ -136,7 +140,7 @@ fi
 echo Installing system packages...
 apt_install python3 python3-dev python3-pip python3-setuptools \
 	netcat-openbsd wget curl git sudo coreutils bc \
-	haveged pollinate openssh-client unzip \
+	pollinate openssh-client unzip \
 	unattended-upgrades cron ntp fail2ban rsyslog
 
 # ### Suppress Upgrade Prompts
@@ -359,6 +363,7 @@ systemctl restart systemd-resolved
 rm -f /etc/fail2ban/jail.local # we used to use this file but don't anymore
 rm -f /etc/fail2ban/jail.d/defaults-debian.conf # removes default config so we can manage all of fail2ban rules in one config
 cat conf/fail2ban/jails.conf \
+    | sed "s/PUBLIC_IPV6/$PUBLIC_IPV6/g" \
 	| sed "s/PUBLIC_IP/$PUBLIC_IP/g" \
 	| sed "s#STORAGE_ROOT#$STORAGE_ROOT#" \
 	> /etc/fail2ban/jail.d/mailinabox.conf
@@ -370,3 +375,27 @@ cp -f conf/fail2ban/filter.d/* /etc/fail2ban/filter.d/
 # scripts will ensure the files exist and then fail2ban is given another
 # restart at the very end of setup.
 restart_service fail2ban
+
+# ### Mail-related logs should be recorded in mail.log only - stop
+# ### duplicate logging to syslog
+
+cat >/etc/rsyslog.d/20-mailinabox.conf <<EOF
+# Do not edit. Overwritten by Mail-in-a-Box setup.
+
+# Output mail-related messages to mail.log, then prevent rsyslog's
+# default configuration from duplicating the messages to syslog.
+
+mail.*				-/var/log/mail.log
+mail.err			/var/log/mail.err
+mail.*              stop
+
+# Output messages from nsd to nsd.log. nsd messages, which have
+# facility "daemon" are also written to syslog by the default rsyslog
+# configuration.
+:app-name, isequal, "nsd"    -/var/log/nsd.log
+EOF
+
+# Before miabldap v56, nsd.log was owned by nsd:nsd, which would
+# prevent rsyslog from writing to it. Fix the ownership.
+[ -e /var/log/nsd.log ] && chown syslog:adm /var/log/nsd.log
+restart_service rsyslog

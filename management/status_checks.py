@@ -110,7 +110,10 @@ def query_dns(qname, rtype, nxdomain='[Not Set]', at=None):
 
 	# Do the query.
 	try:
-		response = resolver.resolve(qname, rtype)
+		if "resolve" in dir(resolver):
+			response = resolver.resolve(qname, rtype)
+		else:
+			response = resolver.query(qname, rtype)
 	except (dns.resolver.NoNameservers, dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
 		# Host did not have an answer for this query; not sure what the
 		# difference is between the two exceptions.

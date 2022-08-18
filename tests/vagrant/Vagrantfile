@@ -36,6 +36,8 @@ SH
 cd /cloudinabox
 tests/bin/wait_for_network.sh
 tests/bin/do_release_upgrade.sh || exit 3
+# allow insecure ssh-rsa to avoid Vagrant autentication failure on reload
+echo PubkeyAcceptedAlgorithms +ssh-rsa > /etc/ssh/sshd_config.d/ciab.conf
 SH
 
       # reboot required after any system upgrade
@@ -52,10 +54,11 @@ SH
   
   
   #
-  # vanilla with encryption-at-rest / focal
+  # jammy
+  # vanilla with encryption-at-rest
   #
   
-  config.vm.define "vanilla-ehdd-focal" do |m1|
+  config.vm.define "vanilla-ehdd" do |m1|
     use_preloaded_box m1, "ubuntu/jammy64"    
     m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
@@ -69,17 +72,18 @@ SH
   end
 
   #
-  # from-backup: restore a backup, then install w/focal
+  # focal
+  # from-backup: restore a backup, then install
   #
 
-  config.vm.define "from-backup-focal" do |m1|
+  config.vm.define "from-backup" do |m1|
     use_preloaded_box m1, "ubuntu/focal64"
     m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
 source tests/vagrant/globals.sh || exit 1
 export PRIMARY_HOSTNAME=qacloud.int.com
-tests/system-setup/from-backup.sh || exit 1
-tests/runner.sh default || exit 2
+tests/system-setup/from-backup.sh backup1 || exit 1
+tests/runner.sh default upgrade-backup1 || exit 2
 SH
   end
 

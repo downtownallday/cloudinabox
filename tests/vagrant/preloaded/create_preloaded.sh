@@ -26,7 +26,7 @@ do
         # sync)
         echo ""
         echo "VAGRANT AUTHENTICATION FAILURE - TRYING LOOSER ALLOWED SSHD ALGS"
-        if vagrant ssh $box -c "sudo bash -c 'echo PubkeyAcceptedAlgorithms +ssh-rsa > /etc/ssh/sshd_config.d/miabldap.conf; sudo systemctl restart sshd'"; then
+        if vagrant ssh $box -c "sudo bash -c 'echo PubkeyAcceptedAlgorithms +ssh-rsa > /etc/ssh/sshd_config.d/ciab.conf; sudo systemctl restart sshd'"; then
             vagrant halt $box
             vagrant up $box
             upcode=$?

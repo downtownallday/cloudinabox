@@ -7,7 +7,7 @@ if [ "$OS_NAME" != "Ubuntu" ]; then
 fi
 
 if [ $OS_MAJOR -ne 20 -a $OS_MAJOR -ne 22 ]; then
-    die "Sorry, this version of cloud-in-a-box only works on Ubuntu 20 (Focal) and 22 (Jammy)"
+    die "Sorry, this version of cloud-in-a-box only works on Ubuntu 20 (Focal) and 22 (Jammy). The last supported version for Ubuntu 18 (Bionic) was v0.4."
 fi
 
 if [ $EUID -ne 0 ]; then

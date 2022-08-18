@@ -99,7 +99,7 @@ IN_DEF && /wait_for_service/ { print "# "$0; next }
     # (start_cmds)
 
     local stop_cmds=(
-        "code, ret = shell('check_output', ['/usr/bin/sudo', '-u', 'www-data', 'php', '/usr/local/nextcloud/occ', 'maintenance:mode', '--on'], capture_stderr=True, trap=True)"
+        "code, ret = shell('check_output', ['/usr/bin/sudo', '-u', 'www-data', 'php${phpver}', '/usr/local/nextcloud/occ', 'maintenance:mode', '--on'], capture_stderr=True, trap=True)"
         "if code != 0: print(ret)"
         "if code != 0: sys.exit(code)"
         "service_command('php${phpver}-fpm', 'stop', quit=True)"
@@ -111,7 +111,7 @@ IN_DEF && /wait_for_service/ { print "# "$0; next }
         "service_command('redis-server', 'start', quit=False)"
         "service_command('mariadb', 'start', quit=False)"
         "service_command('php${phpver}-fpm', 'start', quit=False)"
-        "code, ret = shell('check_output', ['/usr/bin/sudo', '-u', 'www-data', 'php', '/usr/local/nextcloud/occ', 'maintenance:mode', '--off'], capture_stderr=True, trap=True)"
+        "code, ret = shell('check_output', ['/usr/bin/sudo', '-u', 'www-data', 'php${phpver}', '/usr/local/nextcloud/occ', 'maintenance:mode', '--off'], capture_stderr=True, trap=True)"
         "if code != 0: print(ret)"
     )
 

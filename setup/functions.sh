@@ -166,7 +166,7 @@ get_required_php_version() {
     ncmin=$(awk -F: "/^${OS_MAJOR}:/ { print \$3 }" conf/nextcloud_os_matrix.txt)
     ncmax=$(awk -F: "/^${OS_MAJOR}:/ { print \$4 }" conf/nextcloud_os_matrix.txt)
     [ -z "$ncmin" ] && die "Invalid value for nextcloud min/max in conf/nextcloud_os_matrix.txt"
-    say_verbose "Nextcloud versions supported by this OS: ${ncmin}-${ncmax}"
+    say_verbose "Nextcloud versions supported by this OS: ${ncmin}-${ncmax:-latest}"
 
     
     # on return, these globals are set

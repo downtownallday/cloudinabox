@@ -22,6 +22,8 @@ For current users: if you're currently on Ubuntu 20 (Focal) and wish to upgrade 
 
 If you're running on Ubuntu 18 (Bionic), you'll have to upgrade to Ubuntu 20 (Focal) first, then check out the latest cloudinabox code, then re-run setup, then upgrade Nextcloud to version 24+, then upgrade to Jammy.
 
+Upgrading from Ubuntu 20 (Focal) to Ubuntu 22 (Jammy) may be done in-place using the system's OS upgrade program /usr/bin/do-release-upgrade, or from backup files (restored into /home/user-data) on a fresh Jammy system.
+
 
 ## Integration support with Mail-in-a-Box LDAP
 

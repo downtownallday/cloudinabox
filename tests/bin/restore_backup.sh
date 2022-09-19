@@ -2,9 +2,11 @@
 
 usage() {
     echo ""
-    echo "Restore a Cloud-In-A-Box user-data directory from a LOCAL backup"
+    echo "Restore a Mail-In-A-Box or Cloud-In-A-Box user-data directory from a local backup"
     echo ""
-    echo "usage: $0 <path-to-encrypted-dir> <path-to-secret-key.txt> [path-to-restore-to]"
+    echo "usage: $0 <storage-user> <path-to-encrypted-dir> <path-to-secret-key.txt> [path-to-restore-to]"
+    echo "  storage-user:"
+    echo "     the user account that owns the miab files. eg 'user-data'"
     echo "  path-to-encrypted-dir:"
     echo "     a directory containing a copy of duplicity files to restore. These were in"
     echo "     /home/user-data/backup/encrypted on the system."
@@ -15,7 +17,7 @@ usage() {
     echo ""
     echo "  path-to-restore-to:"
     echo "     the directory where the restored files are placed. the default location is"
-    echo "     /home/user-data. FILES IN THIS DIRECTORY WILL BE REPLACED. IF THIS IS A MOUNT POINT ENTER A SUBDIRECTORY OF THE MOUNT POINT THEN MANUALLY MOVE THE FILES BACK ONE LEVEL BECAUSE DUPLICITY AUTOMATICALLY UNMOUNTS IT!"
+    echo "     /home/<storage-user>. FILES IN THIS DIRECTORY WILL BE REPLACED. IF THIS IS A MOUNT POINT ENTER A SUBDIRECTORY OF THE MOUNT POINT THEN MANUALLY MOVE THE FILES BACK ONE LEVEL BECAUSE DUPLICITY AUTOMATICALLY UNMOUNTS IT!"
     echo ""
     echo "If you're using encryption-at-rest, make sure it's mounted before restoring"
     echo "eg: run ehdd/mount.sh"
@@ -23,7 +25,7 @@ usage() {
     exit 1
 }
 
-if [ $# -lt 2 ]; then
+if [ $# -lt 3 ]; then
     usage
 fi
 
@@ -32,9 +34,10 @@ if [ $EUID -ne 0 ]; then
     exit 1
 fi
 
-backup_files_dir="$(realpath "$1")"
-secret_key_file="$2"
-restore_to_dir="$(realpath "${3:-/home/user-data}")"
+storage_user="$1"
+backup_files_dir="$(realpath "$2")"
+secret_key_file="$3"
+restore_to_dir="$(realpath "${4:-/home/$storage_user}")"
 
 
 PASSPHRASE="$(cat "$secret_key_file")"
@@ -56,8 +59,71 @@ if [ ! -x /usr/bin/duplicity ]; then
     apt-get install -y -qq duplicity
 fi
 
-echo "Ensure mariadb is installed so mysql user and group are available"
-apt-get install -y -qq mariadb-server
+# Ensure users and groups are created so that duplicity properly
+# restores permissions.
+#
+# system_users format:
+#    user:group:comment:homedir:shell
+#
+# if the user name and group of `system_users` are identical, the
+# group is created, otherwise the group must already exist (see
+# system_groups below, which are created before users)
+
+if [ -e "setup/ldap.sh" ]; then
+    # Mail-In-A-Box
+    system_users=(
+        "openldap:openldap:OpenLDAP Server Account:/var/lib/ldap:/bin/false"
+        "opendkim:opendkim::/run/opendkim:/usr/sbin/nologin"
+        "spampd:spampd::/nonexistent:/usr/sbin/nologin"
+        "www-data:www-data:www-data:/var/www:/usr/sbin/nologin"
+    )
+else
+    # Cloud-In-A-Box
+    system_users=(
+        "mysql:mysql:MySQL Server:/nonexistent:/bin/false"
+        "www-data:www-data:www-data:/var/www:/usr/sbin/nologin"
+    )    
+fi
+
+system_groups=(
+    "ssl-cert"
+)
+
+# add system groups
+idx=0
+while [ $idx -lt ${#system_groups[*]} ]; do
+    group="${system_groups[$idx]}"
+    groupadd -fr "$group"
+    let idx+=1
+done
+
+# add system users
+idx=0
+while [ $idx -lt ${#system_users[*]} ]; do
+    user=$(awk -F: '{print $1}' <<<"${system_users[$idx]}")
+    group=$(awk -F: '{print $2}' <<<"${system_users[$idx]}")
+    comment=$(awk -F: '{print $3}' <<<"${system_users[$idx]}")
+    homedir=$(awk -F: '{print $4}' <<<"${system_users[$idx]}")
+    shellpath=$(awk -F: '{print $5}' <<<"${system_users[$idx]}")
+
+    if ! id "$user" >/dev/null 2>&1; then
+        opts="-g $group"
+        if [ "$group" = "$user" ]; then
+            opts="-U"
+        fi
+        echo "Add user $user"
+        useradd --shell "$shellpath" -r -M $opts -c "$comment" -d "$homedir" "$user"
+    fi
+    let idx+=1
+done
+
+# add regular user STORAGE_USER
+if ! id "$storage_user" >/dev/null 2>&1; then
+    # ensure the storage user exists
+    echo "Add user $storage_user"
+    useradd -m $storage_user
+    chmod o+x /home/$storage_user
+fi
 
 echo "Restoring with duplicity"
 opts=""
@@ -82,11 +148,13 @@ codes="${PIPESTATUS[0]}${PIPESTATUS[1]}"
 #
 # check that filesystem uid's/gid's mapped to actual users/groups
 #
-if [ "$(find "$restore_to_dir" -nouser)" != "" ]; then
+files_with_nouser="$(find "$restore_to_dir" -nouser)"
+files_with_nogroup="$(find "$restore_to_dir" -nogroup)"
+if [ "${files_with_nouser}${files_with_nogroup}" != "" ]; then
+    echo ""
     echo "WARNING: some restored file/directory ownerships are unmatched"
-fi
-if [ "$(find "$restore_to_dir" -nogroup)" != "" ]; then
-    echo "WARNING: some restored file/directory groups are unmatched"
+    echo "They are:"
+    (find "$restore_to_dir" -nouser; find "$restore_to_dir" -nogroup) | sort | uniq
 fi
 
 

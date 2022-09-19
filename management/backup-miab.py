@@ -242,6 +242,13 @@ def get_target_type(config):
 	protocol = config["target"].split(":")[0]
 	return protocol
 
+def nuke_local_files(backup_dir, backup_cache_dir, config, env):
+	# the files must be removed manually, duplicity won't do
+	# it. eg. `duplicity remove-older-than "1s"` will fail with
+	# "manually purge the repository"
+	for fn, size in list_target_files(config):
+		os.unlink(os.path.join(backup_dir,fn))
+
 def perform_backup(full_backup):
 	env = load_environment()
 
@@ -269,6 +276,15 @@ def perform_backup(full_backup):
 		# be an error already.
 		print(e)
 		sys.exit(1)
+
+	# Nuke local files: when short on disk space and storing backups
+	# locally, delete all local backups before a new one is created.
+	# Otherwise, enough disk space for a minimum of 2 full backups is
+	# needed, which may not be available.
+	if full_backup and "nuke_before_full_backup" in config and config["nuke_before_full_backup"] is True:
+		if config["target"] != "local" and not config["target"].startswith("file://"):
+			raise ValueError("custom.yaml option 'nuke_before_full_backup' is only supported for local backups")
+		nuke_local_files(backup_dir, backup_cache_dir, config, env)
 
 	# Stop services.
 	def service_command(service, command, quit=None):
@@ -451,24 +467,12 @@ def list_target_files(config):
 			raise ValueError("Connection to rsync host failed: {}".format(reason))
 
 	elif target.scheme == "s3":
-		# match to a Region
-		import boto.s3
-		from boto.exception import BotoServerError
-		custom_region = False
-		for region in boto.s3.regions():
-			if region.endpoint == target.hostname:
-				break
-		else:
-			# If region is not found this is a custom region
-			custom_region = True
-
+		import boto3.s3
+		from botocore.exceptions import ClientError
+		
+		# separate bucket from path in target
 		bucket = target.path[1:].split('/')[0]
 		path = '/'.join(target.path[1:].split('/')[1:]) + '/'
-
-		# Create a custom region with custom endpoint
-		if custom_region:
-			from boto.s3.connection import S3Connection
-			region = boto.s3.S3RegionInfo(name=bucket, endpoint=target.hostname, connection_cls=S3Connection)
 
 		# If no prefix is specified, set the path to '', otherwise boto won't list the files
 		if path == '/':
@@ -479,18 +483,15 @@ def list_target_files(config):
 
 		# connect to the region & bucket
 		try:
-			conn = region.connect(aws_access_key_id=config["target_user"], aws_secret_access_key=config["target_pass"])
-			bucket = conn.get_bucket(bucket)
-		except BotoServerError as e:
-			if e.status == 403:
-				raise ValueError("Invalid S3 access key or secret access key.")
-			elif e.status == 404:
-				raise ValueError("Invalid S3 bucket name.")
-			elif e.status == 301:
-				raise ValueError("Incorrect region for this bucket.")
-			raise ValueError(e.reason)
-
-		return [(key.name[len(path):], key.size) for key in bucket.list(prefix=path)]
+			s3 = boto3.client('s3', \
+				endpoint_url=f'https://{target.hostname}', \
+				aws_access_key_id=config['target_user'], \
+				aws_secret_access_key=config['target_pass'])
+			bucket_objects = s3.list_objects_v2(Bucket=bucket, Prefix=path)['Contents']
+			backup_list = [(key['Key'][len(path):], key['Size']) for key in bucket_objects]
+		except ClientError as e:
+			raise ValueError(e)
+		return backup_list
 	elif target.scheme == 'b2':
 		from b2sdk.v1 import InMemoryAccountInfo, B2Api
 		from b2sdk.v1.exception import NonExistentBucket

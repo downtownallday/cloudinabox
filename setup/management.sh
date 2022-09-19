@@ -54,7 +54,8 @@ create_backup_py() {
 #    
 
 EOF
-[ $? -ne 0 ] && die "Could not create backup.py"
+    [ $? -ne 0 ] && die "Could not create backup.py"
+    chmod 755 "management/backup.py"
     
     # Change the python code of the "perform_backup" function:
     #   1. comment out lines we don't want

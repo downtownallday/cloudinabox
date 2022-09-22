@@ -8,7 +8,15 @@ export STORAGE_USER="${STORAGE_USER:-user-data}"
 export STORAGE_ROOT="${STORAGE_ROOT:-/home/$STORAGE_USER}"
 export PUBLIC_IP="${PUBLIC_IP:-$(source ${MIAB_DIR:-.}/setup/functions.sh; get_default_privateip 4)}"
 export ALERTS_EMAIL="${ALERTS_EMAIL:-qa@abc.com}"
-export LOCAL_MODS_DIR="${LOCAL_MODS_DIR:-local}"
+if lsmod | grep "^vboxguest[\t ]" >/dev/null; then
+    # The local mods directory defaults to 'local' (relative to the
+    # source tree, which is a mounted filesystem of the host). This
+    # will keep mods directory out of the source tree when running
+    # under virtualbox / vagrant.
+    export LOCAL_MODS_DIR="${LOCAL_MODS_DIR:-/local}"
+else
+    export LOCAL_MODS_DIR="${LOCAL_MODS_DIR:-$(pwd)/local}"
+fi
 export DOWNLOAD_CACHE_DIR="${DOWNLOAD_CACHE_DIR:-$(pwd)/downloads}"
 export DOWNLOAD_NEXTCLOUD_FROM_GITHUB="${DOWNLOAD_NEXTCLOUD_FROM_GITHUB:-false}"
 

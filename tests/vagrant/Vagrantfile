@@ -3,15 +3,13 @@ load './funcs.rb'
 Vagrant.configure("2") do |config|
 
   config.vm.synced_folder "../..", "/cloudinabox", id: "cloudinabox", automount: false
-  testing = Testing.new
-  testing.say_groups
 
   #
   # vanilla with ubuntu 20 (focal), then upgrade to ubuntu 22 (jammy)
   # requires plugin 'vagrant-reload'
   #
 
-  if testing.group('relupgrade')
+  if ENV['tests']=='all'
     config.vm.define "vanilla-focal2jammy" do |m1|
       if !Vagrant.has_plugin?('vagrant-reload')
         raise("Plugin 'vagrant-reload' is required")
@@ -20,7 +18,6 @@ Vagrant.configure("2") do |config|
       use_preloaded_box m1, "ubuntu/focal64"
       m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
-source tests/vagrant/globals.sh || exit 1
 export PRIMARY_HOSTNAME=f2j1.abc.com
 export SKIP_SYSTEM_UPDATE=0
 tests/system-setup/vanilla.sh -v || exit 1
@@ -62,7 +59,6 @@ SH
     use_preloaded_box m1, "ubuntu/jammy64"    
     m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
-source tests/vagrant/globals.sh || exit 1
 export PRIMARY_HOSTNAME=qa2.abc.com
 export EHDD_KEYFILE=$HOME/keyfile
 echo -n "boo" >$EHDD_KEYFILE
@@ -80,7 +76,6 @@ SH
     use_preloaded_box m1, "ubuntu/focal64"
     m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
-source tests/vagrant/globals.sh || exit 1
 export PRIMARY_HOSTNAME=qacloud.int.com
 tests/system-setup/from-backup.sh backup1 || exit 1
 tests/runner.sh default upgrade-backup1 || exit 2

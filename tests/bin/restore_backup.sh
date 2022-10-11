@@ -65,7 +65,16 @@ echo "Shutting down services"
 ehdd/shutdown.sh || exit 1
 
 if [ ! -x /usr/bin/duplicity ]; then
-    apt-get install -y -qq duplicity
+    echo "Installing duplicity"
+    tmpf=$(mktemp)
+    apt-get install -y duplicity &> "$tmpf"
+    if [ $? -ne 0 ]; then
+        echo "Failed: " 1>&2
+        cat "$tmpf" 1>&2
+        rm -f "$tmpf"
+        exit 1
+    fi
+    rm -f "$tmpf"
 fi
 
 # Ensure users and groups are created so that duplicity properly
@@ -85,6 +94,7 @@ if [ -e "setup/ldap.sh" ]; then
         "opendkim:opendkim::/run/opendkim:/usr/sbin/nologin"
         "spampd:spampd::/nonexistent:/usr/sbin/nologin"
         "www-data:www-data:www-data:/var/www:/usr/sbin/nologin"
+        "postgrey:postgrey::/var/lib/postgrey:/usr/sbin/nologin"
     )
 else
     # Cloud-In-A-Box

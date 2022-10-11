@@ -15,7 +15,7 @@ duplicity_files=tests/assets/backup/backup1/encrypted
 secret_key=tests/assets/backup/backup1/secret_key.txt
 restore_to=${1:-$STORAGE_ROOT}
 
-tests/bin/restore_backup.sh "$duplicity_files" "$secret_key" "$restore_to"
+tests/bin/restore_backup.sh "$STORAGE_USER" "$duplicity_files" "$secret_key" "$restore_to"
 
 # remove the expired certificate, it's not valid and will be
 # regenerated during setup

@@ -148,7 +148,7 @@ fi
 
 echo Installing system packages...
 apt_install python3 python3-dev python3-pip python3-setuptools \
-	netcat-openbsd wget curl git sudo coreutils bc \
+	netcat-openbsd wget curl git sudo coreutils bc file \
 	pollinate openssh-client unzip \
 	unattended-upgrades cron ntp fail2ban rsyslog
 
@@ -407,4 +407,6 @@ EOF
 # Before miabldap v56, nsd.log was owned by nsd:nsd, which would
 # prevent rsyslog from writing to it. Fix the ownership.
 [ -e /var/log/nsd.log ] && chown syslog:adm /var/log/nsd.log
+[ -e /var/log/mail.log ] && chown syslog:adm /var/log/mail.log
+[ -e /var/log/mail.err ] && chown syslog:adm /var/log/mail.err
 restart_service rsyslog

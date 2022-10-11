@@ -43,6 +43,7 @@ create_backup_py() {
 #
 # min_age_in_days: 3
 # target: local
+# nuke_before_full_backup: false
 #
 # in addition, for duplicity targets that require authentication (eg
 # S3), specify credentials in:
@@ -103,12 +104,14 @@ IN_DEF && /wait_for_service/ { print "# "$0; next }
         "code, ret = shell('check_output', ['/usr/bin/sudo', '-u', 'www-data', 'php${phpver}', '/usr/local/nextcloud/occ', 'maintenance:mode', '--on'], capture_stderr=True, trap=True)"
         "if code != 0: print(ret)"
         "if code != 0: sys.exit(code)"
+        "service_command('cron', 'stop', quit=True)"
         "service_command('php${phpver}-fpm', 'stop', quit=True)"
         "service_command('redis-server', 'stop', quit=True)"
         "service_command('mariadb', 'stop', quit=True)"
     )
     
     local start_cmds=(
+        "service_command('cron', 'start', quit=False)"
         "service_command('redis-server', 'start', quit=False)"
         "service_command('mariadb', 'start', quit=False)"
         "service_command('php${phpver}-fpm', 'start', quit=False)"
@@ -186,6 +189,6 @@ create_ssl_certificates_py
 cat > /etc/cron.d/cloudinabox-nightly << EOF
 # Cloud-in-a-Box --- Do not edit / will be overwritten on update.
 # Run nightly tasks: backup, status checks.
-0 3 * * *	root	(cd `pwd` && management/daily_tasks.sh)
+0 3 * * *	root	(cd $(pwd) && management/daily_tasks.sh)
 EOF
 

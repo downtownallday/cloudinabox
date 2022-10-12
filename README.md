@@ -69,7 +69,7 @@ Similar to Mail-in-a-Box, upgrading Cloud-in-a-Box is simply a matter of re-runn
 
 1. set your working directory to cloudinabox `cd cloudinabox`
 1. get the latest source code `git pull`
-1. checkout the new version `git checkout v0.4`
+1. checkout the new version `git checkout v0.6`
 1. run setup `sudo setup/start.sh`
 
 However, Nextcloud upgrades are handled by you using the Nextcloud user interface or directly using `occ` commands from the command line. You will find `occ` in `/usr/local/nextcloud`.

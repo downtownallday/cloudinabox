@@ -1,4 +1,13 @@
 # -*- indent-tabs-mode: nil; -*-
+#####
+##### This file is part of Mail-in-a-Box-LDAP which is released under the
+##### terms of the GNU Affero General Public License as published by the
+##### Free Software Foundation, either version 3 of the License, or (at
+##### your option) any later version. See file LICENSE or go to
+##### https://github.com/downtownallday/mailinabox-ldap for full license
+##### details.
+#####
+
 import os.path, collections
 
 # DO NOT import non-standard modules. This module is imported by
@@ -30,7 +39,7 @@ def load_env_vars_from_file(fn, strip_quotes=False, merge_env=None):
     for line in open(fn):
         env.setdefault(*line.strip().split("=", 1))
     if strip_quotes:
-        for k in env: env[k]=env[k].strip('"')
+        for k in env: env[k]=('' if env[k] is None else env[k].strip('"'))
     if merge_env is not None:
         for k in env: merge_env[k]=env[k]
     return env
@@ -192,14 +201,6 @@ def wait_for_service(port, public, env, timeout):
 			if time.perf_counter() > start+timeout:
 				return False
 		time.sleep(min(timeout/4, 1))
-
-def fix_boto():
-	# Google Compute Engine instances install some Python-2-only boto plugins that
-	# conflict with boto running under Python 3. Disable boto's default configuration
-	# file prior to importing boto so that GCE's plugin is not loaded:
-	import os
-	os.environ["BOTO_CONFIG"] = "/etc/boto3.cfg"
-
 
 if __name__ == "__main__":
 	from web_update import get_web_domains

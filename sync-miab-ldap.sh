@@ -55,7 +55,7 @@ sync_recursive() {
         echo "Syncing $dst"
         rsync -a --dry-run "$src" "$dst"
     else
-        rsync -a "$src" "$dst"
+        rsync -v -a "$src" "$dst"
     fi
 }
 
@@ -68,17 +68,21 @@ sync_recursive "$miabdir/tests/assets/ssl/" "tests/assets/ssl"
 # destination in 'miab_files')
 ciab_files=(
     ./tests/suites/_init.sh
+    ./tests/bin/restore_backup.sh
     ./conf/nginx-ssl.conf
-    ./setup/remote-nextcloud-use-miab.sh
+    ./setup/connect-nextcloud-to-miab.sh
     ./setup/mods.available/README.md
     ./setup/mods.available/coturn.sh
+    ./setup/mods.available/unattended-upgrades-mail.sh
 )
 miab_files=(
     $miabdir/tests/suites/_init.sh
+    $miabdir/tests/bin/restore_backup.sh
     $miabdir/conf/nginx-ssl.conf
-    $miabdir/setup/mods.available/remote-nextcloud-use-miab.sh
+    $miabdir/setup/mods.available/connect-nextcloud-to-miab.sh
     $miabdir/setup/mods.available/README.md
     $miabdir/setup/mods.available/coturn.sh
+    $miabdir/setup/mods.available/unattended-upgrades-mail.sh
 )
 
 

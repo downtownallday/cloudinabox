@@ -1,3 +1,12 @@
+#####
+##### This file is part of Mail-in-a-Box-LDAP which is released under the
+##### terms of the GNU Affero General Public License as published by the
+##### Free Software Foundation, either version 3 of the License, or (at
+##### your option) any later version. See file LICENSE or go to
+##### https://github.com/downtownallday/mailinabox-ldap for full license
+##### details.
+#####
+
 source /etc/mailinabox.conf
 source setup/functions.sh # load our functions
 
@@ -97,25 +106,12 @@ fi
 # come from there and minimal Ubuntu installs may have it turned off.
 hide_output add-apt-repository -y universe
 
-# Install the certbot PPA.
-if [ $(. /etc/os-release; echo $VERSION_ID | awk -F. '{print $1}') -le 18 ]
-then
-    hide_output add-apt-repository -y ppa:certbot/certbot
-else
-    hide_output snap install core
-    hide_output snap refresh core
-    if ! snap list certbot 1>/dev/null 2>&1; then
-        # a ppa was required on ubuntu 18, but snaps are used in ubuntu 19+
-        # remove the ppa and certbot per eff's instructions
-        hide_output add-apt-repository -r -y ppa:certbot/certbot
-        hide_output apt-get remove -y certbot
-    fi
-    hide_output snap install --classic certbot
-    ln -sf /snap/bin/certbot /usr/bin/certbot
-fi
-
 # Install the duplicity PPA.
 hide_output add-apt-repository -y ppa:duplicity-team/duplicity-release-git
+
+# Stock PHP is now 8.1, but we're transitioning through 8.0 because
+# of Nextcloud.
+hide_output add-apt-repository --y ppa:ondrej/php
 
 # ### Update Packages
 
@@ -139,9 +135,6 @@ fi
 
 # Install basic utilities.
 #
-# * haveged: Provides extra entropy to /dev/random so it doesn't stall
-#	         when generating random numbers for private keys (e.g. during
-#	         ldns-keygen).
 # * unattended-upgrades: Apt tool to install security updates automatically.
 # * cron: Runs background processes periodically.
 # * ntp: keeps the system time correct
@@ -155,8 +148,8 @@ fi
 
 echo Installing system packages...
 apt_install python3 python3-dev python3-pip python3-setuptools \
-	netcat-openbsd wget curl git sudo coreutils bc \
-	haveged pollinate openssh-client unzip \
+	netcat-openbsd wget curl git sudo coreutils bc file \
+	pollinate openssh-client unzip \
 	unattended-upgrades cron ntp fail2ban rsyslog
 
 # ### Suppress Upgrade Prompts
@@ -347,7 +340,7 @@ fi #NODOC
 #  	If more queries than specified are sent, bind9 returns SERVFAIL. After flushing the cache during system checks,
 #	we ran into the limit thus we are increasing it from 75 (default value) to 100.
 apt_install bind9
-tools/editconf.py /etc/default/bind9 \
+tools/editconf.py /etc/default/named \
 	"OPTIONS=\"-u bind -4\""
 if ! grep -q "listen-on " /etc/bind/named.conf.options; then
 	# Add a listen-on directive if it doesn't exist inside the options block.
@@ -379,6 +372,7 @@ systemctl restart systemd-resolved
 rm -f /etc/fail2ban/jail.local # we used to use this file but don't anymore
 rm -f /etc/fail2ban/jail.d/defaults-debian.conf # removes default config so we can manage all of fail2ban rules in one config
 cat conf/fail2ban/jails.conf \
+    | sed "s/PUBLIC_IPV6/$PUBLIC_IPV6/g" \
 	| sed "s/PUBLIC_IP/$PUBLIC_IP/g" \
 	| sed "s#STORAGE_ROOT#$STORAGE_ROOT#" \
 	> /etc/fail2ban/jail.d/mailinabox.conf
@@ -390,3 +384,29 @@ cp -f conf/fail2ban/filter.d/* /etc/fail2ban/filter.d/
 # scripts will ensure the files exist and then fail2ban is given another
 # restart at the very end of setup.
 restart_service fail2ban
+
+# ### Mail-related logs should be recorded in mail.log only - stop
+# ### duplicate logging to syslog
+
+cat >/etc/rsyslog.d/20-mailinabox.conf <<EOF
+# Do not edit. Overwritten by Mail-in-a-Box setup.
+
+# Output mail-related messages to mail.log, then prevent rsyslog's
+# default configuration from duplicating the messages to syslog.
+
+mail.*				-/var/log/mail.log
+mail.err			/var/log/mail.err
+mail.*              stop
+
+# Output messages from nsd to nsd.log. nsd messages, which have
+# facility "daemon" are also written to syslog by the default rsyslog
+# configuration.
+:app-name, isequal, "nsd"    -/var/log/nsd.log
+EOF
+
+# Before miabldap v56, nsd.log was owned by nsd:nsd, which would
+# prevent rsyslog from writing to it. Fix the ownership.
+[ -e /var/log/nsd.log ] && chown syslog:adm /var/log/nsd.log
+[ -e /var/log/mail.log ] && chown syslog:adm /var/log/mail.log
+[ -e /var/log/mail.err ] && chown syslog:adm /var/log/mail.err
+restart_service rsyslog

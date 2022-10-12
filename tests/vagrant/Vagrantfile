@@ -3,25 +3,22 @@ load './funcs.rb'
 Vagrant.configure("2") do |config|
 
   config.vm.synced_folder "../..", "/cloudinabox", id: "cloudinabox", automount: false
-  testing = Testing.new
-  testing.say_groups
 
   #
-  # vanilla with ubuntu 18 (bionic), then upgrade to ubuntu 20 (focal)
+  # vanilla with ubuntu 20 (focal), then upgrade to ubuntu 22 (jammy)
   # requires plugin 'vagrant-reload'
   #
 
-  if testing.group('relupgrade')
-    config.vm.define "vanilla-bionic2focal" do |m1|
+  if ENV['tests']=='all'
+    config.vm.define "vanilla-focal2jammy" do |m1|
       if !Vagrant.has_plugin?('vagrant-reload')
         raise("Plugin 'vagrant-reload' is required")
       end
     
-      use_preloaded_box m1, "ubuntu/bionic64"
+      use_preloaded_box m1, "ubuntu/focal64"
       m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
-source tests/vagrant/globals.sh || exit 1
-export PRIMARY_HOSTNAME=b2f1.abc.com
+export PRIMARY_HOSTNAME=f2j1.abc.com
 export SKIP_SYSTEM_UPDATE=0
 tests/system-setup/vanilla.sh -v || exit 1
 tests/runner.sh default || exit 2
@@ -36,6 +33,8 @@ SH
 cd /cloudinabox
 tests/bin/wait_for_network.sh
 tests/bin/do_release_upgrade.sh || exit 3
+# allow insecure ssh-rsa to avoid Vagrant autentication failure on reload
+echo PubkeyAcceptedAlgorithms +ssh-rsa > /etc/ssh/sshd_config.d/ciab.conf
 SH
 
       # reboot required after any system upgrade
@@ -52,14 +51,14 @@ SH
   
   
   #
-  # vanilla with encryption-at-rest / focal
+  # jammy
+  # vanilla with encryption-at-rest
   #
   
-  config.vm.define "vanilla-ehdd-focal" do |m1|
-    use_preloaded_box m1, "ubuntu/focal64"    
+  config.vm.define "vanilla-ehdd" do |m1|
+    use_preloaded_box m1, "ubuntu/jammy64"    
     m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
-source tests/vagrant/globals.sh || exit 1
 export PRIMARY_HOSTNAME=qa2.abc.com
 export EHDD_KEYFILE=$HOME/keyfile
 echo -n "boo" >$EHDD_KEYFILE
@@ -69,17 +68,17 @@ SH
   end
 
   #
-  # from-backup: restore a backup, then install w/bionic
+  # focal
+  # from-backup: restore a backup, then install
   #
 
-  config.vm.define "from-backup-bionic" do |m1|
-    use_preloaded_box m1, "ubuntu/bionic64"
+  config.vm.define "from-backup" do |m1|
+    use_preloaded_box m1, "ubuntu/focal64"
     m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
-source tests/vagrant/globals.sh || exit 1
 export PRIMARY_HOSTNAME=qacloud.int.com
-tests/system-setup/from-backup.sh || exit 1
-tests/runner.sh default || exit 2
+tests/system-setup/from-backup.sh backup1 || exit 1
+tests/runner.sh default upgrade-backup1 || exit 2
 SH
   end
 

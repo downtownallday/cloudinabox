@@ -1,3 +1,12 @@
+#####
+##### This file is part of Mail-in-a-Box-LDAP which is released under the
+##### terms of the GNU Affero General Public License as published by the
+##### Free Software Foundation, either version 3 of the License, or (at
+##### your option) any later version. See file LICENSE or go to
+##### https://github.com/downtownallday/mailinabox-ldap for full license
+##### details.
+#####
+
 verify_file_sha1sum() {
     local FILE="$1"
     local HASH="$2"
@@ -294,16 +303,40 @@ get_nc_download_url() {
 
     if [ -z "$url" ]; then
         if [ -z "$ver" ]; then
-            url="https://download.nextcloud.com/server/releases/${REQUIRED_NC_FOR_FRESH_INSTALLS:-latest}.${ext#.}"
-            url_cache_id="${REQUIRED_NC_FOR_FRESH_INSTALLS:-latest}.${ext#.}"
+            ver=${REQUIRED_NC_FOR_FRESH_INSTALLS:-latest}
+        fi
+        
+        case "$ver" in
+            latest )
+                url="https://download.nextcloud.com/server/releases/latest.${ext#.}"
+                url_cache_id="latest.${ext#.}"
+                ;;
 
-        else
-            url="https://download.nextcloud.com/server/releases/nextcloud-${ver}.${ext#.}"
-            url_cache_id="nextcloud-${ver}.${ext#.}"
-        fi        
+            *rc* )
+                url="https://download.nextcloud.com/server/prereleases/nextcloud-${ver}.${ext#.}"
+                url_cache_id="nextcloud-${ver}.${ext#.}"
+                ;;
+            
+            * )
+                url="https://download.nextcloud.com/server/releases/nextcloud-${ver}.${ext#.}"
+                url_cache_id="nextcloud-${ver}.${ext#.}"
+        esac
     fi
 
     DOWNLOAD_URL="$url"
     DOWNLOAD_URL_CACHE_ID="$url_cache_id"
     return 0
+}
+
+
+
+install_composer() {
+    if [ ! -x /usr/local/bin/composer ]; then
+        pushd /usr/local/bin >/dev/null
+        curl -sS https://getcomposer.org/installer | hide_output php${PHP_VER}
+        mv composer.phar composer
+        popd >/dev/null
+    else
+        hide_output /usr/local/bin/composer selfupdate
+    fi
 }

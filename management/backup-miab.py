@@ -1,5 +1,14 @@
 #!/usr/local/lib/mailinabox/env/bin/python
 # -*- indent-tabs-mode: t; tab-width: 4; python-indent-offset: 4; -*-
+#####
+##### This file is part of Mail-in-a-Box-LDAP which is released under the
+##### terms of the GNU Affero General Public License as published by the
+##### Free Software Foundation, either version 3 of the License, or (at
+##### your option) any later version. See file LICENSE or go to
+##### https://github.com/downtownallday/mailinabox-ldap for full license
+##### details.
+#####
+
 
 # This script performs a backup of all user data:
 # 1) System services are stopped.
@@ -13,12 +22,7 @@ import dateutil.parser, dateutil.relativedelta, dateutil.tz
 import rtyaml
 from exclusiveprocess import Lock
 
-from utils import load_environment, shell, wait_for_service, fix_boto
-
-rsync_ssh_options = [
-	"--ssh-options= -i /root/.ssh/id_rsa_miab",
-	"--rsync-options= -e \"/usr/bin/ssh -oStrictHostKeyChecking=no -oBatchMode=yes -p 22 -i /root/.ssh/id_rsa_miab\"",
-]
+from utils import load_environment, shell, wait_for_service
 
 def backup_status(env):
 	# If backups are dissbled, return no status.
@@ -65,9 +69,9 @@ def backup_status(env):
 		"--archive-dir", backup_cache_dir,
 		"--gpg-options", "--cipher-algo=AES256",
 		"--log-fd", "1",
-		config["target"],
-		] + rsync_ssh_options,
-		get_env(env),
+		get_duplicity_target_url(config),
+		] + get_duplicity_additional_args(env),
+		get_duplicity_env_vars(env),
 		trap=True)
 	if code != 0:
 		# Command failed. This is likely due to an improperly configured remote
@@ -196,7 +200,43 @@ def get_passphrase(env):
 
 	return passphrase
 
-def get_env(env):
+def get_duplicity_target_url(config):
+	target = config["target"]
+
+	if get_target_type(config) == "s3":
+		from urllib.parse import urlsplit, urlunsplit
+		target = list(urlsplit(target))
+
+		# Although we store the S3 hostname in the target URL,
+		# duplicity no longer accepts it in the target URL. The hostname in
+		# the target URL must be the bucket name. The hostname is passed
+		# via get_duplicity_additional_args. Move the first part of the
+		# path (the bucket name) into the hostname URL component, and leave
+		# the rest for the path.
+		target[1], target[2] = target[2].lstrip('/').split('/', 1)
+
+		target = urlunsplit(target)
+
+	return target
+
+def get_duplicity_additional_args(env):
+	config = get_backup_config(env)
+
+	if get_target_type(config) == 'rsync':
+		return [
+			"--ssh-options= -i /root/.ssh/id_rsa_miab",
+			"--rsync-options= -e \"/usr/bin/ssh -oStrictHostKeyChecking=no -oBatchMode=yes -p 22 -i /root/.ssh/id_rsa_miab\"",
+		]
+	elif get_target_type(config) == 's3':
+		# See note about hostname in get_duplicity_target_url.
+		from urllib.parse import urlsplit, urlunsplit
+		target = urlsplit(config["target"])
+		endpoint_url = urlunsplit(("https", target.netloc, '', '', ''))
+		return ["--s3-endpoint-url",  endpoint_url]
+
+	return []
+
+def get_duplicity_env_vars(env):
 	config = get_backup_config(env)
 
 	env = { "PASSPHRASE" : get_passphrase(env) }
@@ -210,6 +250,13 @@ def get_env(env):
 def get_target_type(config):
 	protocol = config["target"].split(":")[0]
 	return protocol
+
+def nuke_local_files(backup_dir, backup_cache_dir, config, env):
+	# the files must be removed manually, duplicity won't do
+	# it. eg. `duplicity remove-older-than "1s"` will fail with
+	# "manually purge the repository"
+	for fn, size in list_target_files(config):
+		os.unlink(os.path.join(backup_dir,fn))
 
 def perform_backup(full_backup):
 	env = load_environment()
@@ -239,6 +286,15 @@ def perform_backup(full_backup):
 		print(e)
 		sys.exit(1)
 
+	# Nuke local files: when short on disk space and storing backups
+	# locally, delete all local backups before a new one is created.
+	# Otherwise, enough disk space for a minimum of 2 full backups is
+	# needed, which may not be available.
+	if full_backup and "nuke_before_full_backup" in config and config["nuke_before_full_backup"] is True:
+		if config["target"] != "local" and not config["target"].startswith("file://"):
+			raise ValueError("custom.yaml option 'nuke_before_full_backup' is only supported for local backups")
+		nuke_local_files(backup_dir, backup_cache_dir, config, env)
+
 	# Stop services.
 	def service_command(service, command, quit=None):
 		# Execute silently, but if there is an error then display the output & exit.
@@ -248,11 +304,12 @@ def perform_backup(full_backup):
 			if quit:
 				sys.exit(code)
 
-	service_command("php7.2-fpm", "stop", quit=True)
+	service_command("php8.0-fpm", "stop", quit=True)
 	service_command("postfix", "stop", quit=True)
 	service_command("dovecot", "stop", quit=True)
 	service_command("slapd", "stop", quit=True)
 	service_command("miabldap-capture", "stop", quit=True)
+	service_command("postgrey", "stop", quit=True)
 
 	# Execute a pre-backup script that copies files outside the homedir.
 	# Run as the STORAGE_USER user, not as root. Pass our settings in
@@ -276,17 +333,18 @@ def perform_backup(full_backup):
 			"--volsize", "250",
 			"--gpg-options", "--cipher-algo=AES256",
 			env["STORAGE_ROOT"],
-			config["target"],
+			get_duplicity_target_url(config),
 			"--allow-source-mismatch"
-			] + rsync_ssh_options,
-			get_env(env))
+			] + get_duplicity_additional_args(env),
+			get_duplicity_env_vars(env))
 	finally:
 		# Start services again.
 		service_command("miabldap-capture", "start", quit=False)
 		service_command("slapd", "start", quit=False)
+		service_command("postgrey", "start", quit=False)
 		service_command("dovecot", "start", quit=False)
 		service_command("postfix", "start", quit=False)
-		service_command("php7.2-fpm", "start", quit=False)
+		service_command("php8.0-fpm", "start", quit=False)
 
 	# Remove old backups. This deletes all backup data no longer needed
 	# from more than 3 days ago.
@@ -297,9 +355,9 @@ def perform_backup(full_backup):
 		"--verbosity", "error",
 		"--archive-dir", backup_cache_dir,
 		"--force",
-		config["target"]
-		] + rsync_ssh_options,
-		get_env(env))
+		get_duplicity_target_url(config)
+		] + get_duplicity_additional_args(env),
+		get_duplicity_env_vars(env))
 
 	# From duplicity's manual:
 	# "This should only be necessary after a duplicity session fails or is
@@ -312,9 +370,9 @@ def perform_backup(full_backup):
 		"--verbosity", "error",
 		"--archive-dir", backup_cache_dir,
 		"--force",
-		config["target"]
-		] + rsync_ssh_options,
-		get_env(env))
+		get_duplicity_target_url(config)
+		] + get_duplicity_additional_args(env),
+		get_duplicity_env_vars(env))
 
 	# Change ownership of backups to the user-data user, so that the after-bcakup
 	# script can access them.
@@ -350,9 +408,9 @@ def run_duplicity_verification():
 		"--compare-data",
 		"--archive-dir", backup_cache_dir,
 		"--exclude", backup_root,
-		config["target"],
+		get_duplicity_target_url(config),
 		env["STORAGE_ROOT"],
-	] + rsync_ssh_options, get_env(env))
+	] + get_duplicity_additional_args(env), get_duplicity_env_vars(env))
 
 def run_duplicity_restore(args):
 	env = load_environment()
@@ -362,9 +420,9 @@ def run_duplicity_restore(args):
 		"/usr/bin/duplicity",
 		"restore",
 		"--archive-dir", backup_cache_dir,
-		config["target"],
-		] + rsync_ssh_options + args,
-	get_env(env))
+		get_duplicity_target_url(config),
+		] + get_duplicity_additional_args(env) + args,
+	get_duplicity_env_vars(env))
 
 def list_target_files(config):
 	import urllib.parse
@@ -420,25 +478,12 @@ def list_target_files(config):
 			raise ValueError("Connection to rsync host failed: {}".format(reason))
 
 	elif target.scheme == "s3":
-		# match to a Region
-		fix_boto() # must call prior to importing boto
-		import boto.s3
-		from boto.exception import BotoServerError
-		custom_region = False
-		for region in boto.s3.regions():
-			if region.endpoint == target.hostname:
-				break
-		else:
-			# If region is not found this is a custom region
-			custom_region = True
-
+		import boto3.s3
+		from botocore.exceptions import ClientError
+		
+		# separate bucket from path in target
 		bucket = target.path[1:].split('/')[0]
 		path = '/'.join(target.path[1:].split('/')[1:]) + '/'
-
-		# Create a custom region with custom endpoint
-		if custom_region:
-			from boto.s3.connection import S3Connection
-			region = boto.s3.S3RegionInfo(name=bucket, endpoint=target.hostname, connection_cls=S3Connection)
 
 		# If no prefix is specified, set the path to '', otherwise boto won't list the files
 		if path == '/':
@@ -449,18 +494,15 @@ def list_target_files(config):
 
 		# connect to the region & bucket
 		try:
-			conn = region.connect(aws_access_key_id=config["target_user"], aws_secret_access_key=config["target_pass"])
-			bucket = conn.get_bucket(bucket)
-		except BotoServerError as e:
-			if e.status == 403:
-				raise ValueError("Invalid S3 access key or secret access key.")
-			elif e.status == 404:
-				raise ValueError("Invalid S3 bucket name.")
-			elif e.status == 301:
-				raise ValueError("Incorrect region for this bucket.")
-			raise ValueError(e.reason)
-
-		return [(key.name[len(path):], key.size) for key in bucket.list(prefix=path)]
+			s3 = boto3.client('s3', \
+				endpoint_url=f'https://{target.hostname}', \
+				aws_access_key_id=config['target_user'], \
+				aws_secret_access_key=config['target_pass'])
+			bucket_objects = s3.list_objects_v2(Bucket=bucket, Prefix=path)['Contents']
+			backup_list = [(key['Key'][len(path):], key['Size']) for key in bucket_objects]
+		except ClientError as e:
+			raise ValueError(e)
+		return backup_list
 	elif target.scheme == 'b2':
 		from b2sdk.v1 import InMemoryAccountInfo, B2Api
 		from b2sdk.v1.exception import NonExistentBucket

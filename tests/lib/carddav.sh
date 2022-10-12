@@ -1,3 +1,12 @@
+#####
+##### This file is part of Mail-in-a-Box-LDAP which is released under the
+##### terms of the GNU Affero General Public License as published by the
+##### Free Software Foundation, either version 3 of the License, or (at
+##### your option) any later version. See file LICENSE or go to
+##### https://github.com/downtownallday/mailinabox-ldap for full license
+##### details.
+#####
+
 #
 # requires:
 #    system packages: [ curl, python3, sqlite3 ]
@@ -247,9 +256,7 @@ roundcube_force_carddav_refresh() {
     [ -z "$carddav_major" ] && carddav_major="3"
 
     if [ $carddav_major -eq 3 ]; then
-        if [ ! -e "$RCM_DIR/bin/carddav_refresh.sh" ]; then
-            echo "Please ignore the following errors about no such table carddav_addressbooks and carddav_migrations"
-        fi
+        # old version
         sync_script="$assets_dir/mail/roundcube/carddav_refresh_v3.sh"
     else
         sync_script="$assets_dir/mail/roundcube/carddav_refresh.sh"
@@ -261,7 +268,8 @@ roundcube_force_carddav_refresh() {
     fi
     
     pushd "$RCM_DIR" >/dev/null
-    bin/carddav_refresh.sh "$user" "$pass"
+    echo "Please ignore errors about 'no such table carddav_addressbooks' and 'no such table carddav_migrations'"
+    /usr/bin/php${PHP_VER} bin/carddav_refresh.sh "$user" "$pass"
     code=$?
     popd >/dev/null
     return $code

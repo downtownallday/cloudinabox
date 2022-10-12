@@ -17,7 +17,7 @@ function hide_output {
 	# and returns a non-zero exit code.
 
 	# Get a temporary file.
-	OUTPUT=$(tempfile)
+	OUTPUT=$(mktemp)
 
 	# Execute command, redirecting stderr/stdout to the temporary file. Since we
 	# check the return code ourselves, disable 'set -e' temporarily.
@@ -158,11 +158,26 @@ get_required_php_version() {
     # set global  OS_* vars
     get_os_release
 
+    # read the supported nextcloud versions matix file
+    local phpver ncmin ncmax
+    phpver=$(awk -F: "/^${OS_MAJOR}:/ { print \$2 }" conf/nextcloud_os_matrix.txt)
+    [ $? -ne 0 ] && die "Unable to read conf/nextcloud_os_matrix.txt"
+    [ -z "$phpver" ] && die "Unsupported OS version (OS_MAJOR=$OS_MAJOR) - see conf/nextcloud_os_matrix.txt"
+    ncmin=$(awk -F: "/^${OS_MAJOR}:/ { print \$3 }" conf/nextcloud_os_matrix.txt)
+    ncmax=$(awk -F: "/^${OS_MAJOR}:/ { print \$4 }" conf/nextcloud_os_matrix.txt)
+    [ -z "$ncmin" ] && die "Invalid value for nextcloud min/max in conf/nextcloud_os_matrix.txt"
+    say_verbose "Nextcloud versions supported by this OS: ${ncmin}-${ncmax:-latest}"
+
+    
     # on return, these globals are set
-    REQUIRED_NC_FOR_FRESH_INSTALLS="latest"
-    REQUIRED_PHP_PACKAGE="php7.4"
-    REQUIRED_PHP_VERSION="7.4"
-    REQUIRED_PHP_EXECUTABLE="/usr/bin/php7.4"
+    if [ -z "$REQUIRED_NC_FOR_FRESH_INSTALLS" ]; then
+        REQUIRED_NC_FOR_FRESH_INSTALLS=latest
+        [ ! -z "$ncmax" ] && REQUIRED_NC_FOR_FRESH_INSTALLS="latest-$ncmax"
+    fi
+    REQUIRED_PHP_PACKAGE="php$phpver"
+    REQUIRED_PHP_VERSION="$phpver"
+    REQUIRED_PHP_EXECUTABLE="/usr/bin/php$phpver"
+
 
     local os_desc="$OS_NAME $OS_MAJOR $OS_VERSION_CODENAME"
     
@@ -174,60 +189,33 @@ get_required_php_version() {
 
     if [ -z "$VALUE" ]; then
         # nextcloud is not installed, and no restored user-data either
-        if [ $OS_MAJOR -le 18 ]; then
-            # ubuntu 18 and below do not have php7.4, only php7.2, and only
-            # nextcloud versions <= 20 support 7.2.
-            REQUIRED_NC_FOR_FRESH_INSTALLS="latest-20"
-            REQUIRED_PHP_PACKAGE="php7.2"
-            REQUIRED_PHP_VERSION="7.2"
-            REQUIRED_PHP_EXECUTABLE="/usr/bin/php7.2"
-            say "Warning: this OS ($os_desc) will not support Nextcloud versions higher than 20. Upgrade $OS_NAME to get Nextcloud versions 21 and higher."
-            return 0
-        else
-            return 0
+        if [ ! -z "$ncmax" ]; then
+            local ncmax_plus_1="$ncmax"
+            let ncmax_plus_1+=1
+            say "Warning: this OS ($os_desc) will not support Nextcloud versions higher than $ncmax. Upgrade $OS_NAME to get Nextcloud versions $ncmax_plus_1 and higher."
         fi
+            
+        return 0
     fi
 
     # nextcloud is already installed (or at least a backup of
     # user-data exists where we obtained the nextcloud version)
     local nc_ver="$VALUE"
     local nc_major="$(awk -F. '{print $1}' <<< "$nc_ver")"
-    
-    if [ $nc_major -lt 18 ]; then
-        # nextcloud 17 and below do not support php 7.4
-        if [ $OS_MAJOR -gt 18 ]; then
-            die "The version of nextcloud installed is $nc_major, which requires php7.2. However, $os_desc does not support it"
-        fi
-        REQUIRED_PHP_PACKAGE="php7.2"
-        REQUIRED_PHP_VERSION="7.2"
-        REQUIRED_PHP_EXECUTABLE="/usr/bin/php7.2"
-        return 0
 
-    elif [ $nc_major -le 20 ]; then
-        # nextcloud 18 to 20 (inclusive) support php7.2 and php7.4
-        if [ $OS_MAJOR -le 18 ]; then
-            # ubuntu 18 does not have php7.4, only php7.2
-            REQUIRED_PHP_PACKAGE="php7.2"
-            REQUIRED_PHP_VERSION="7.2"
-            REQUIRED_PHP_EXECUTABLE="/usr/bin/php7.2"
-            return 0
-        fi
-        REQUIRED_PHP_PACKAGE="php7.4"
-        REQUIRED_PHP_VERSION="7.4"
-        REQUIRED_PHP_EXECUTABLE="/usr/bin/php7.4"
-        return 0
+    local nc
 
-    else
-        # nextcloud 21 and higher no longer support php7.2
-        if [ $OS_MAJOR -le 18 ]; then
-            die "Nextcloud version $nc_major is installed, however $os_desc does not have a version of php that supports it. 7.4 is required. An OS upgrade is required."
-        fi
-        
-        REQUIRED_PHP_PACKAGE="php7.4"
-        REQUIRED_PHP_VERSION="7.4"
-        REQUIRED_PHP_EXECUTABLE="/usr/bin/php7.4"
-        return 0
+    if [ $nc_major -lt $ncmin ]; then
+        die "The version of Nextcloud installed is $nc_major, which requires a version of php that the OS doesn't support. The OS only supports Nextcloud versions ${ncmin}-${ncmax}."
     fi
+
+    if [ ! -z "$ncmax" ]; then
+        if [ $nc_major -gt $ncmax ]; then
+            die "The version of Nextcloud installed is $nc_major, which requires a version of php that the OS doesn't support. The OS only supports Nextcloud versions ${ncmin}-${ncmax}."
+        fi
+    fi
+
+    return 0
 }
 
 
@@ -236,12 +224,12 @@ get_required_php_version() {
 # LOAD GLOBAL VARIABLES
 #
 
+get_os_release
+
 if [ ! -z "$STORAGE_ROOT" ]
 then
     . "setup/locations.sh" || die "could not load setup/locations.sh"
-    get_os_release
-    get_required_php_version
-    
+    get_required_php_version    
 else
     say_verbose "Warning: STORAGE_ROOT not set, not loading globals yet"
 fi

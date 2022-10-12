@@ -169,7 +169,7 @@ secure_server() {
     # set the root password and secure installation
     mysql -u root --password='' --database=mysql <<EOF
 -- set root password
-update user SET Password=PASSWORD('$pass') where User='root';
+SET PASSWORD FOR 'root'@'localhost' = PASSWORD('$pass');
 
 -- delete anon users
 delete from user where User='';
@@ -194,14 +194,6 @@ EOF
     DATA_DIR_SECURED=yes
 }
 
-allow_nonroot_access() {
-    # OPTIONAL: allow non-root (unix) user to authenticate as 'root'
-    # in mariadb
-    mysql -u root --password="$SQL_ROOT_PASSWORD" --database=mysql <<EOF
-update user set plugin=' ' where User='root';
-flush privileges;
-EOF
-}
 
 # install system packages
 install_packages || die "Unable to continue"
@@ -225,6 +217,4 @@ secure_server
 # store the root password in other locations as well
 store_root_password
 
-# allow non-root unix users to mysql as root
-allow_nonroot_access || die "Unable to modify mariadb to allow non-root user root access"
 

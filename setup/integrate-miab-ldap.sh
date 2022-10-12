@@ -159,7 +159,7 @@ if [ -z "$NONINTERACTIVE" ]; then
         save_conf
 
         # execute the integration script that comes with MiaB-LDAP
-        setup/remote-nextcloud-use-miab.sh $NCDIR $NC_ADMIN_USER "$NC_ADMIN_PASSWORD" "$MAILINABOX_HOST" "$MAILINABOX_SERVICE_PASSWORD" "$ALERTS_EMAIL" "$MAILINABOX_SMARTHOST_AUTH_USER" "$MAILINABOX_SMARTHOST_AUTH_PASSWORD"
+        setup/connect-nextcloud-to-miab.sh $NCDIR $NC_ADMIN_USER "$NC_ADMIN_PASSWORD" "$MAILINABOX_HOST" "$MAILINABOX_SERVICE_PASSWORD" "$ALERTS_EMAIL" "$MAILINABOX_SMARTHOST_AUTH_USER" "$MAILINABOX_SMARTHOST_AUTH_PASSWORD"
         rc=$?
         
         # nextcloud admin authentication failed if rc==3
@@ -169,7 +169,7 @@ if [ -z "$NONINTERACTIVE" ]; then
             read -s -p "[$NC_ADMIN_PASSWORD] " ans_nc_admin_pass
             echo ""
             $NC_ADMIN_PASSWORD="${ans_nc_admin_pass:-$NC_ADMIN_PASSWORD}"
-            setup/remote-nextcloud-use-miab.sh $NCDIR $NC_ADMIN_USER "$NC_ADMIN_PASSWORD" "$MAILINABOX_HOST" "$MAILINABOX_SERVICE_PASSWORD" "$ALERTS_EMAIL" "$MAILINABOX_SMARTHOST_AUTH_USER" "$MAILINABOX_SMARTHOST_AUTH_PASSWORD"
+            setup/connect-nextcloud-to-miab.sh $NCDIR $NC_ADMIN_USER "$NC_ADMIN_PASSWORD" "$MAILINABOX_HOST" "$MAILINABOX_SERVICE_PASSWORD" "$ALERTS_EMAIL" "$MAILINABOX_SMARTHOST_AUTH_USER" "$MAILINABOX_SMARTHOST_AUTH_PASSWORD"
             rc=$?
             if [ $rc -eq 0 ]; then
                 tools/editconf.py $STORAGE_ROOT/nextcloud/ciab_nextcloud.conf \
@@ -193,7 +193,7 @@ else
         save_conf
         
         # execute the integration script that comes with MiaB-LDAP
-        setup/remote-nextcloud-use-miab.sh $NCDIR $NC_ADMIN_USER "$NC_ADMIN_PASSWORD" "$MAILINABOX_HOST" "$MAILINABOX_SERVICE_PASSWORD" "$ALERTS_EMAIL" "$MAILINABOX_SMARTHOST_AUTH_USER" "$MAILINABOX_SMARTHOST_AUTH_PASSWORD"
+        setup/connect-nextcloud-to-miab.sh $NCDIR $NC_ADMIN_USER "$NC_ADMIN_PASSWORD" "$MAILINABOX_HOST" "$MAILINABOX_SERVICE_PASSWORD" "$ALERTS_EMAIL" "$MAILINABOX_SMARTHOST_AUTH_USER" "$MAILINABOX_SMARTHOST_AUTH_PASSWORD"
     fi
     
 fi

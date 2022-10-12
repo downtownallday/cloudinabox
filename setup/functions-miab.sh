@@ -1,9 +1,20 @@
 # -*- indent-tabs-mode: t; tab-width: 4; -*-
+#####
+##### This file is part of Mail-in-a-Box-LDAP which is released under the
+##### terms of the GNU Affero General Public License as published by the
+##### Free Software Foundation, either version 3 of the License, or (at
+##### your option) any later version. See file LICENSE or go to
+##### https://github.com/downtownallday/mailinabox-ldap for full license
+##### details.
+#####
+
 # Turn on "strict mode." See http://redsymbol.net/articles/unofficial-bash-strict-mode/.
 # -e: exit if any command unexpectedly fails.
 # -u: exit if we have a variable typo.
 # -o pipefail: don't ignore errors in the non-last command in a pipeline
 set -euo pipefail
+
+PHP_VER=8.0
 
 function hide_output {
 	# This function hides the output of a command unless the command fails
@@ -34,6 +45,24 @@ function hide_output {
 	rm -f $OUTPUT
 }
 
+function wait_for_apt_lock {
+	# check to see if other package managers have a lock on new
+	# installs, and wait for them to finish
+	local count=0
+	while fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
+		if [ $count -eq 0 ]; then
+			echo "Waiting for apt to become unlocked..."
+		fi
+		sleep 6
+		let count+=1
+		if [ $count -gt 100 ]; then
+			echo "Timeout waiting for apt to become unlocked - another process may be using it"
+			break
+		fi
+	done
+	return 0
+}
+
 function apt_get_quiet {
 	# Run apt-get in a totally non-interactive mode.
 	#
@@ -45,6 +74,7 @@ function apt_get_quiet {
 	# Although we could pass -qq to apt-get to make output quieter, many packages write to stdout
 	# and stderr things that aren't really important. Use our hide_output function to capture
 	# all of that and only show it if there is a problem (i.e. if apt_get returns a failure exit status).
+	wait_for_apt_lock
 	DEBIAN_FRONTEND=noninteractive hide_output apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" "$@"
 }
 
@@ -285,4 +315,15 @@ say_verbose() {
 
 say() {
 	echo "$@"
+}
+
+install_hook_handler() {
+	# this is used by local setup mods to install a hook handler for
+	# the management daemon
+	local handler_file="$1"
+	local dst="${LOCAL_MODS_DIR:-local}/management_hooks_d"
+	mkdir -p "$dst"	
+	cp "$handler_file" "$dst"
+	# let the daemon know there's a new hook handler
+	tools/hooks_update >/dev/null
 }

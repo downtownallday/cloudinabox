@@ -1,4 +1,10 @@
+v0.6
+
+Add support for Ubuntu 22 jammy jellyfish
+Switch from Travis to Github Actions
+
 v0.4
+
 fix config.yaml loading for backup configuration
 add github actions and tests
 fix nc webfinger/nodeinfo nginx redirection

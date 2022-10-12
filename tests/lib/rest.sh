@@ -1,3 +1,12 @@
+#####
+##### This file is part of Mail-in-a-Box-LDAP which is released under the
+##### terms of the GNU Affero General Public License as published by the
+##### Free Software Foundation, either version 3 of the License, or (at
+##### your option) any later version. See file LICENSE or go to
+##### https://github.com/downtownallday/mailinabox-ldap for full license
+##### details.
+#####
+
 #
 # REST helper functions
 #
@@ -23,7 +32,7 @@ rest_urlencoded() {
     # Return values:
     #   0 indicates success (curl returned 0 or a code deemed to be
     #     successful and HTTP status is >=200  but <300)
-    #   1 curl returned with non-zero code that indicates and error
+    #   1 curl returned with non-zero code that indicates an error
     #   2 the response status was <200 or >= 300
     #
     # Debug messages are sent to stderr
@@ -48,6 +57,10 @@ rest_urlencoded() {
     
 	local data=()
 	local item output onlydata="false"
+
+	if [ ! -z "$auth_user" ]; then
+		data+=("--user" "${auth_user}:${auth_pass}")
+	fi
 	
 	for item; do
         case "$item" in
@@ -77,8 +90,9 @@ rest_urlencoded() {
         esac
     done
 
-	echo "spawn: curl -w \"%{http_code}\" -X $verb --user \"${auth_user}:xxx\" ${data[@]} $url" 1>&2
-	output=$(curl -s -S -w "%{http_code}" -X $verb --user "${auth_user}:${auth_pass}" "${data[@]}" $url)
+	echo "spawn: curl -w \"%{http_code}\" -X $verb ${data[@]} $url" 1>&2
+	# pipe through 'tr' to avoid bash "warning: command substitution: ignored null byte in input" where curl places a \0 between output and http_code
+	output=$(curl -s -S -w "%{http_code}" -X $verb "${data[@]}" $url | tr -d '\0')
 	local code=$?
 
 	# http status is last 3 characters of output, extract it
@@ -105,11 +119,15 @@ rest_urlencoded() {
 		fi
 	fi
 	if [ $REST_HTTP_CODE -lt 200 -o $REST_HTTP_CODE -ge 300 ]; then
-		REST_ERROR="REST status $REST_HTTP_CODE: $REST_OUTPUT"
+        if [ -z "$REST_OUTPUT" ]; then
+            REST_ERROR="Server returned status $REST_HTTP_CODE"
+        else
+            REST_ERROR="Server returned status $REST_HTTP_CODE: $REST_OUTPUT"
+        fi
 		echo "${F_DANGER}$REST_ERROR${F_RESET}" 1>&2
         if $is_local && [ $REST_HTTP_CODE -ge 500 ]; then
             echo -n "$F_WARN"
-            tail -100 /var/log/syslog
+            tail -100 /var/log/syslog | grep -i "(traceback|err|warn|fail|fatal|uncaught)" 1>&2
             echo -n "$F_RESET"
         fi
 		return 2

@@ -7,11 +7,11 @@ if [ -e "$EHDD_IMG" ]; then
     if [ -s /etc/cloudinabox.conf ]; then
         echo ""
         echo "** Disabling system services **"
-        systemctl disable nginx
-        systemctl disable mariadb
-        systemctl disable redis-server
-        systemctl disable cron
-        systemctl disable fail2ban
+        systemctl disable --quiet nginx
+        systemctl disable --quiet mariadb
+        systemctl disable --quiet redis-server
+        systemctl disable --quiet cron
+        systemctl disable --quiet fail2ban
 
         echo ""
         echo "IMPORTANT:"

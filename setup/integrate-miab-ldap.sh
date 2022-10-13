@@ -159,6 +159,9 @@ if [ -z "$NONINTERACTIVE" ]; then
         save_conf
 
         # execute the integration script that comes with MiaB-LDAP
+        export REQUIRED_PHP_VER
+        export REQUIRED_PHP_EXECUTABLE
+        export REQUIRED_PHP_PACKAGE
         setup/connect-nextcloud-to-miab.sh $NCDIR $NC_ADMIN_USER "$NC_ADMIN_PASSWORD" "$MAILINABOX_HOST" "$MAILINABOX_SERVICE_PASSWORD" "$ALERTS_EMAIL" "$MAILINABOX_SMARTHOST_AUTH_USER" "$MAILINABOX_SMARTHOST_AUTH_PASSWORD"
         rc=$?
         

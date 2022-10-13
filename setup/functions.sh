@@ -178,7 +178,6 @@ get_required_php_version() {
     REQUIRED_PHP_VERSION="$phpver"
     REQUIRED_PHP_EXECUTABLE="/usr/bin/php$phpver"
 
-
     local os_desc="$OS_NAME $OS_MAJOR $OS_VERSION_CODENAME"
     
     # get the installed nextcloud version (if installed)
@@ -229,7 +228,8 @@ get_os_release
 if [ ! -z "$STORAGE_ROOT" ]
 then
     . "setup/locations.sh" || die "could not load setup/locations.sh"
-    get_required_php_version    
+    get_required_php_version
+    PHP_VER="$REQUIRED_PHP_VERSION" # override miab's PHP_VER from functions.sh
 else
     say_verbose "Warning: STORAGE_ROOT not set, not loading globals yet"
 fi

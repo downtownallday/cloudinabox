@@ -16,13 +16,6 @@ run_miab_web_sh() {
 
     cat setup/web-miab.sh >> setup/web-miab-mods.sh \
         || die "Could not copy setup/web-miab.sh"
-
-    # change php module names, eg: php-cli => php7.4-cli
-    errmsg="Could not edit setup/web-miab.sh"
-    sed -i "s/php-/$php-/g" setup/web-miab-mods.sh || die "$errmsg"
-
-    # change hardcoded php version
-    sed -i "s/8\\.0/$phpver/g" setup/web-miab-mods.sh || die "$errmsg"
     
     # don't restart any services -- we'll restart in this script
     sed -i 's/^restart_service .*/#\0/g' setup/web-miab-mods.sh || die "$errmsg"

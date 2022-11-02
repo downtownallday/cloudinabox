@@ -220,7 +220,7 @@ function wget_verify {
 	DEST=$3
 	CHECKSUM="$HASH  $DEST"
 	rm -f $DEST
-	hide_output wget -O $DEST $URL
+	hide_output wget --compression=auto -O $DEST $URL
 	if ! echo "$CHECKSUM" | sha1sum --check --strict > /dev/null; then
 		echo "------------------------------------------------------------"
 		echo "Download of $URL did not match expected checksum."
@@ -317,13 +317,62 @@ say() {
 	echo "$@"
 }
 
+wait_for_management_daemon() {
+	local progress="${1:-progress}" # show progress? "progress"/"no-progress"
+	local max_wait="${2:-60}" # seconds, 0=forever
+	local start=$(date +%s)
+	local elapsed=0 now
+	[ "$max_wait" = "forever" ] && max_wait=0
+	
+	# Wait for the management daemon to start...
+	until nc -z -w 4 127.0.0.1 10222
+	do
+		now=$(date +%s)
+		# let returns 1 if the equasion evaluates to zero, which will
+		# cause the script to exit because of set -e. add one.
+		[ $now -eq $start ] && let now+=1
+		let elapsed="$now - $start"
+		if [ $max_wait -ne 0 -a $elapsed -gt $max_wait ]; then
+			echo "Timeout waiting for Mail-in-a-Box management daemon to start"
+			return 1
+		fi
+		if [ "$progress" = "progress" ]; then
+			echo Waiting for the Mail-in-a-Box management daemon to start...
+		fi
+		sleep 2
+	done
+}
+
 install_hook_handler() {
 	# this is used by local setup mods to install a hook handler for
-	# the management daemon
+	# the management daemon. source /etc/mailinabox.conf before
+	# calling
 	local handler_file="$1"
 	local dst="${LOCAL_MODS_DIR:-local}/management_hooks_d"
-	mkdir -p "$dst"	
-	cp "$handler_file" "$dst"
-	# let the daemon know there's a new hook handler
-	tools/hooks_update >/dev/null
+	if [ ! -d "$dst" -o -e "$dst/$(basename "$handler_file")" ]; then
+		mkdir -p "$dst"
+		cp "$handler_file" "$dst"
+		if systemctl is-active --quiet mailinabox; then
+			systemctl restart mailinabox
+			wait_for_management_daemon no-progress
+		fi
+	else
+		cp "$handler_file" "$dst"
+		# let the daemon know there's a new hook handler
+		tools/hooks_update >/dev/null
+	fi
 }
+
+remove_hook_handler() {
+	# source /etc/mailinabox.conf before calling
+	local hook_py=$(basename "$1")
+	local dst="${LOCAL_MODS_DIR:-local}/management_hooks_d/$hook_py"
+	if [ -e "$dst" ]; then
+		rm -f "$dst"
+		# let the daemon know installed hooks have been updated
+		if systemctl is-active --quiet mailinabox; then
+			tools/hooks_update >/dev/null
+		fi
+	fi
+}
+

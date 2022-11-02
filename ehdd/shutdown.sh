@@ -10,4 +10,6 @@ if [ -s /etc/cloudinabox.conf ]; then
     systemctl stop cron
 fi
 
-ehdd/umount.sh
+if [ "$1" != "--no-umount" ]; then
+    ehdd/umount.sh
+fi

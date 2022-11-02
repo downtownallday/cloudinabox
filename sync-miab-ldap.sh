@@ -51,11 +51,11 @@ fi
 sync_recursive() {
     local src="$1"
     local dst="$2"
+    echo "Syncing $dst"
     if $dry_run; then
-        echo "Syncing $dst"
         rsync -a --dry-run "$src" "$dst"
     else
-        rsync -v -a "$src" "$dst"
+        rsync --info=COPY,DEL -a "$src" "$dst"
     fi
 }
 
@@ -64,12 +64,13 @@ sync_recursive "$miabdir/tests/lib/" "tests/lib"
 sync_recursive "$miabdir/tests/assets/ssl/" "tests/assets/ssl"
 
 
-# automatic files (source file in 'ciab_files' with corresponding
-# destination in 'miab_files')
+# automatic files (source file in 'miab_files' with corresponding
+# destination in 'ciab_files')
 ciab_files=(
     ./tests/suites/_init.sh
     ./tests/bin/restore_backup.sh
     ./conf/nginx-ssl.conf
+    ./tools/editconf.php
     ./setup/connect-nextcloud-to-miab.sh
     ./setup/mods.available/README.md
     ./setup/mods.available/coturn.sh
@@ -79,6 +80,7 @@ miab_files=(
     $miabdir/tests/suites/_init.sh
     $miabdir/tests/bin/restore_backup.sh
     $miabdir/conf/nginx-ssl.conf
+    $miabdir/tools/editconf.php
     $miabdir/setup/mods.available/connect-nextcloud-to-miab.sh
     $miabdir/setup/mods.available/README.md
     $miabdir/setup/mods.available/coturn.sh

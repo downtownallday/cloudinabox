@@ -1,9 +1,20 @@
 <?php
+#####
+##### This file is part of Mail-in-a-Box-LDAP which is released under the
+##### terms of the GNU Affero General Public License as published by the
+##### Free Software Foundation, either version 3 of the License, or (at
+##### your option) any later version. See file LICENSE or go to
+##### https://github.com/downtownallday/mailinabox-ldap for full license
+##### details.
+#####
+
 
 #
-# Edit a Nextcloud config.php file
+# Edit a Nextcloud or other config.php file
 #
 # Specify the path to config.php as the first argument.
+#
+# Specify the name of the config variable as the second argument.
 #
 # Subsequent arguments specify the name and value pairs of elements to
 #  change or add. Each element of the pair are separate
@@ -15,15 +26,16 @@
 # For example, to set dbhost to 'localhost' and trusted_domains to an
 # array of values:
 #
-#   sudo -u www-data php editconfig.php /usr/local/nextcloud/config/config.php dbhost localhost trusted_domains "array(0=>'localhost',1=>'127.0.0.1')"
+#   php editconfig.php /usr/local/lib/roundcubemail/config/config.inc.php config dbhost localhost trusted_domains "array(0=>'localhost',1=>'127.0.0.1')"
 #
 # The original file is MODIFIED in-place!!!
 #
 
 require($argv[1]);
+$config_var_name = $argv[2];
+$configref = &$$config_var_name;
 
 $dry_run = false;
-
 
 function print_array($v, $level, $fp) {
   fwrite($fp, "array (\n");
@@ -63,7 +75,7 @@ function print_array($v, $level, $fp) {
 }
 
 
-for($i=2; $i<count($argv); $i+=2) {
+for($i=3; $i<count($argv); $i+=2) {
    $overwrite = true;
    
    $name=$argv[$i];
@@ -74,6 +86,9 @@ for($i=2; $i<count($argv); $i+=2) {
 
    $value=$argv[$i+1];
    if(substr($value,0,5) == "array") {
+       $value = eval('return ' . $value . ';');
+   }
+   else if (substr($value,0,8) == "constant") {
        $value = eval('return ' . $value . ';');
    }
    else if (is_numeric($value)) {
@@ -87,8 +102,8 @@ for($i=2; $i<count($argv); $i+=2) {
        $value = false;
    }
 
-   if ($overwrite || ! array_key_exists($name, $CONFIG)) {
-       $CONFIG[$name] = $value;
+   if ($overwrite || ! array_key_exists($name, $configref)) {
+       $configref[$name] = $value;
    }
 }
 
@@ -100,8 +115,8 @@ if ($dry_run) {
 }
 
 fwrite($fp, "<?php\n");
-fwrite($fp, "\$CONFIG=");
-print_array($CONFIG, 1, $fp);
+fwrite($fp, "\$$config_var_name=");
+print_array($configref, 1, $fp);
 fwrite($fp, ";\n");
 fwrite($fp, "?>\n");
 fclose($fp);

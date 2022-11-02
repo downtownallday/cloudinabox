@@ -197,6 +197,7 @@ update_nextcloud_config() {
     done
     
     sudo -u www-data $phpx tools/editconf.php "$NCDIR/config/config.php" \
+         "CONFIG" \
          'trusted_domains' "array(${trusted_domains[*]})" \
          'overwrite.cli.url' "https://$PRIMARY_HOSTNAME/" \
          'htaccess.RewriteBase' '/' \

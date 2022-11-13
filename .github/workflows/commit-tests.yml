@@ -2,7 +2,7 @@ name: commit-tests
 on: [push, workflow_dispatch]
 jobs:
   # CiaB vanilla on jammy
-  vanilla-focal:
+  vanilla:
     runs-on: ubuntu-22.04
     env:
       DOWNLOAD_NEXTCLOUD_FROM_GITHUB: true

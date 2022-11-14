@@ -48,17 +48,29 @@ create_conf() {
     # if an existing /etc/cloudinabox.conf exists, it should be loaded
     # prior to calling this function
     
-	local publicip=$(get_publicip_from_web_service)
-	[ -z "$publicip" ] && publicip=$(get_default_privateip)
-    local privateip=$(get_default_privateip)
+    local publicip=$(get_publicip_from_web_service 4)
+    [ -z "$publicip" ] && publicip=$(get_default_privateip 4)
+    local publicip=$(get_publicip_from_web_service 4)
+    [ -z "$publicip" ] && publicip=$(get_default_privateip 4)
+    local privateip=$(get_default_privateip 4)
+
+    local publicipv6=$(get_publicip_from_web_service 6)
+    [ -z "$publicipv6" ] && publicipv6=$(get_default_privateip 6)
+    local publicipv6=$(get_publicip_from_web_service 6)
+    [ -z "$publicipv6" ] && publicipv6=$(get_default_privateip 6)
+    local privateipv6=$(get_default_privateip 6)
     ALERTS_EMAIL_HAS_CHANGED=no
 
-    read_hostname    
+    # normalize LOCAL_MODS_DIR
+    LOCAL_MODS_DIR_NORM="$(realpath -m "${LOCAL_MODS_DIR:-local}")"
+        
+    read_hostname
     read_alerts_email
     
     if [ ! -e /etc/cloudinabox.conf ]; then
-	    say_verbose "Creating new /etc/cloudinabox.conf"
+        say_verbose "Creating new /etc/cloudinabox.conf"
         FIRST_TIME_SETUP=1  # for miab borrowed scripts (eg. system-miab.sh)
+        
         cat >/etc/cloudinabox.conf <<EOF
 STORAGE_ROOT=${STORAGE_ROOT:-/home/user-data}
 STORAGE_USER=${STORAGE_USER:-user-data}
@@ -66,7 +78,10 @@ PRIMARY_HOSTNAME=$hostname
 TIMEZONE=
 ALERTS_EMAIL=$alerts_email
 PUBLIC_IP=$publicip
+PUBLIC_IPV6=$publicipv6
 PRIVATE_IP=$privateip
+PRIVATE_IPV6=$privateipv6
+LOCAL_MODS_DIR=$LOCAL_MODS_DIR_NORM
 EOF
     else
         if [ "$publicip" != "$PUBLIC_IP" ]; then
@@ -76,9 +91,21 @@ EOF
         if [ "$privateip" != "$PRIVATE_IP" ]; then
             tools/editconf.py /etc/cloudinabox.conf "PRIVATE_IP=$privateip"
         fi
+
+        if [ "$publicipv6" != "$PUBLIC_IPV6" ]; then
+            tools/editconf.py /etc/cloudinabox.conf "PUBLIC_IPV6=$publicipv6"
+        fi
         
+        if [ "$privateipv6" != "$PRIVATE_IPV6" ]; then
+            tools/editconf.py /etc/cloudinabox.conf "PRIVATE_IPV6=$privateipv6"
+        fi
+
         if [ "$hostname" != "$PRIMARY_HOSTNAME" ]; then
             tools/editconf.py /etc/cloudinabox.conf "PRIMARY_HOSTNAME=$hostname"
+        fi
+
+        if [ "$LOCAL_MODS_DIR" != "$LOCAL_MODS_DIR_NORM" ]; then
+            tools/editconf.py /etc/cloudinabox.conf "LOCAL_MODS_DIR=$LOCAL_MODS_DIR_NORM"
         fi
         
         if [ "$alerts_email" != "$ALERTS_EMAIL" ]; then
@@ -91,14 +118,14 @@ EOF
 
     # create the storage user and home directory
     if ! id -u $STORAGE_USER >/dev/null 2>&1; then
-	    useradd -m $STORAGE_USER
+        useradd -m $STORAGE_USER
     fi
     if [ ! -d $STORAGE_ROOT ]; then
-	    mkdir -p $STORAGE_ROOT
+        mkdir -p $STORAGE_ROOT
     fi
     if [ ! -f $STORAGE_ROOT/cloudinabox.version ]; then
-	    echo "1" > $STORAGE_ROOT/cloudinabox.version
-	    chown $STORAGE_USER:$STORAGE_USER $STORAGE_ROOT/cloudinabox.version
+        echo "1" > $STORAGE_ROOT/cloudinabox.version
+        chown $STORAGE_USER:$STORAGE_USER $STORAGE_ROOT/cloudinabox.version
     fi
 
     # we borrow scripts from mail-in-a-box, which require that this
@@ -172,12 +199,14 @@ fi
 #
 # Run setup mods 
 #
-local_dir="${LOCAL_MODS_DIR:-local}"
 mod_count=0
-if [ -d "${LOCAL_MODS_DIR:-local}" ]; then
-    for mod in $(ls "$local_dir" | grep -v '~$'); do
-        if [ -x "$local_dir/$mod" ]; then
-            "$local_dir/$mod" || die "Local mod '$mod' failed with exit code $?"
+if [ -d "$LOCAL_MODS_DIR" ]; then
+    for mod in $(ls "$LOCAL_MODS_DIR" | grep -v '~$'); do
+        mod_path="$LOCAL_MODS_DIR/$mod"
+        if [ -f "$mod_path" -a -x "$mod_path" ]; then
+            echo ""
+            echo "Running mod: $mod_path"
+            "$mod_path" || die "Local mod '$mod' failed with exit code $?"
             let mod_count+=1
         fi
     done
@@ -210,7 +239,7 @@ fi
 
 say ""
 say "Access your server at:"
-ips=($(echo "$PUBLIC_IP $PRIVATE_IP $(hostname -I)" | sed 's/ /\n/g' | uniq))
+ips=($(echo "$PUBLIC_IP $PRIVATE_IP $PUBLIC_IPV6 $PRIVATE_IPV6 $(hostname -I)" | sed 's/ /\n/g' | uniq))
 for ip in "${ips[@]}"; do
     say "   https://$ip/"
 done

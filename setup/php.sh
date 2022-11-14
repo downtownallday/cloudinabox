@@ -28,7 +28,7 @@ apt_install \
     $php-apcu  \
     || die "Unable to install $php packages"
 
-# php-smbclient is not currently shipping with ubuntu 20 try to
+# php-smbclient is not currently shipping with ubuntu try to
 # install, but ignore errors - it's not a required package
 apt-get install -y $php-smbclient 1>/dev/null 2>&1
 

@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # -*- indent-tabs-mode: t; tab-width: 4; python-indent-offset: 4; -*-
 import sys, os, os.path, re, subprocess, datetime, multiprocessing.pool
 
@@ -5,6 +6,7 @@ import dns.reversename, dns.resolver
 import dateutil.parser, dateutil.tz
 import idna
 import psutil
+import hooks
 
 #from dns_update import get_dns_zones, build_tlsa_record, get_custom_dns_config, get_secondary_dns, get_custom_dns_records
 #from web_update import get_web_domains, get_domains_with_a_records
@@ -31,7 +33,10 @@ class FileOutput:
 		self.print_block(message, first_line="✖  ")
 
 	def print_warning(self, message):
-		self.print_block(message, first_line="?  ")
+		self.print_block(message, first_line="⚠  ")
+
+	def print_info(self, message):
+		self.print_block(message, first_line="ℹ  ")
 
 	def print_block(self, message, first_line="   "):
 		print(first_line, end='', file=self.buf)
@@ -77,7 +82,7 @@ class BufferedOutput:
 	def __init__(self, with_lines=None):
 		self.buf = [] if not with_lines else with_lines
 	def __getattr__(self, attr):
-		if attr not in ("add_heading", "print_ok", "print_error", "print_warning", "print_block", "print_line"):
+		if attr not in ("add_heading", "print_ok", "print_error", "print_warning", "print_info", "print_block", "print_line"):
 			raise AttributeError
 		# Return a function that just records the call & arguments to our buffer.
 		def w(*args, **kwargs):
@@ -440,6 +445,14 @@ def run_checks(rounded_values, env, output, pool):
 	run_network_checks(env, output, rounded_values)
 
 
+def what_version_is_this(env):
+	# This function runs `git describe --abbrev=0` on the Mail-in-a-Box installation directory.
+	# Git may not be installed and Mail-in-a-Box may not have been cloned from github,
+	# so this function may raise all sorts of exceptions.
+	miab_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+	tag = shell("check_output", ["/usr/bin/git", "describe", "--abbrev=0"], env={"GIT_DIR": os.path.join(miab_dir, '.git')}).strip()
+	return tag
+
 def run_and_output_changes(env, pool):
 	import json
 	from difflib import SequenceMatcher
@@ -455,6 +468,16 @@ def run_and_output_changes(env, pool):
 	if os.path.exists(cache_fn):
 		prev = json.load(open(cache_fn))
 
+		# execute hooks
+		hook_data = {
+			'op':'output_changes_begin',
+			'env':env,
+			'cur': cur,
+			'prev': prev,
+			'output':out
+		}
+		hooks.exec_hooks('status_checks', hook_data)
+		
 		# Group the serial output into categories by the headings.
 		def group_by_heading(lines):
 			from collections import OrderedDict
@@ -503,6 +526,15 @@ def run_and_output_changes(env, pool):
 				out.add_heading(category)
 				out.print_warning("This section was removed.")
 
+	# execute hooks
+	hook_data = {
+		'op':'output_changes_end',
+		'since': os.stat(cache_fn).st_mtime if os.path.exists(cache_fn) else 0,
+		'env':env,
+		'output':out
+	}
+	hooks.exec_hooks('status_checks', hook_data)
+	
 	# Store the current status checks output for next time.
 	os.makedirs(os.path.dirname(cache_fn), exist_ok=True)
 	with open(cache_fn, "w") as f:

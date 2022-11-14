@@ -8,6 +8,7 @@
 
 # load array_contains function
 . tests/lib/misc.sh || exit 1
+. tests/lib/color-output.sh || exit 1
 
 # defaults and options
 MYDIR=$(dirname "$0")
@@ -71,20 +72,26 @@ ciab_files=(
     ./tests/bin/restore_backup.sh
     ./conf/nginx-ssl.conf
     ./tools/editconf.php
+    ./tools/editconf.py
     ./setup/connect-nextcloud-to-miab.sh
     ./setup/mods.available/README.md
     ./setup/mods.available/coturn.sh
     ./setup/mods.available/unattended-upgrades-mail.sh
+    ./setup/mods.available/logwatch.sh
+    ./setup/mods.available/hooks/logwatch-hooks.py
 )
 miab_files=(
     $miabdir/tests/suites/_init.sh
     $miabdir/tests/bin/restore_backup.sh
     $miabdir/conf/nginx-ssl.conf
     $miabdir/tools/editconf.php
+    $miabdir/tools/editconf.py
     $miabdir/setup/mods.available/connect-nextcloud-to-miab.sh
     $miabdir/setup/mods.available/README.md
     $miabdir/setup/mods.available/coturn.sh
     $miabdir/setup/mods.available/unattended-upgrades-mail.sh
+    $miabdir/setup/mods.available/logwatch.sh
+    $miabdir/setup/mods.available/hooks/logwatch-hooks.py
 )
 
 
@@ -137,12 +144,12 @@ process() {
         
     if $dry_run; then
         if [ ! -e "$src" ]; then
-            echo "ERROR: DOES NOT EXIST: $src"
+            echo "${F_DANGER}ERROR: DOES NOT EXIST: $src${F_RESET}"
             return 2
 
         elif $changed; then
-            [ ! -e "$dst" ] && dst="$dst (DOES NOT EXIST)"
-            echo " COPY:  $src -> $dst"
+            [ ! -e "$dst" ] && dst="$dst (${F_WARN}DOES NOT EXIST${F_RESET})"
+            echo " ${F_WARN}COPY${F_RESET}:  $src -> $dst"
             return 1
             
         else
@@ -152,6 +159,7 @@ process() {
     else
 
         if $changed; then
+            mkdir -p "$(dirname "$dst")"
             echo -n "COPY: "
             cp --verbose "$src" "$dst"
             [ $? -eq 0 ] && return 1

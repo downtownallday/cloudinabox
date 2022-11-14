@@ -178,10 +178,19 @@ create_ssl_certificates_py() {
 }
 
 
+create_hooks_py() {
+    # create hooks.py from hooks-maib.py
+    say_verbose "create management/hooks.py from mail-in-a-box's"
+    echo "# GENERATED FILE - DO NOT EDIT - GENERATED FROM hooks-miab.py" > "management/hooks.py" || die "Could not create hooks.py"
+    cat "management/hooks-miab.py" >> "management/hooks.py" || die "Could not modify hooks.py"
+    sed -i -E 's/mailinabox(_mods\.conf|\.conf)/cloudinabox\1/g' "management/hooks.py" || die "Could not modify hooks.py"
+}
+
 
 create_backup_py
 create_utils_py
 create_ssl_certificates_py
+create_hooks_py
 
 
 # set up cron job for daily_tasks (status checks, backups, etc)

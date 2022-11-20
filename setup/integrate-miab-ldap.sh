@@ -55,7 +55,7 @@ read_service_password() {
 read_smarthost_auth() {
     local ans_smarthost_user ans_smarthost_pw
     echo ""
-    echo "Use MiaB as a mail \"smart host\""
+    echo "Use MiaB as a mail \"mail hub\""
     echo "** This server must authenticate with MiaB to be able to send mail. Enter the email address this server will authenticate as. It must be a user account you created in Mail-in-a-Box **"
     if [ -z "$MAILINABOX_SMARTHOST_AUTH_USER" ]; then
         read -p  "[<not currently set>] " ans_smarthost_user
@@ -76,7 +76,7 @@ read_smarthost_auth() {
     echo ""
     echo "IMPORTANT:"
     echo ""
-    echo "The smart host user will be sending mail FROM other users, a privilege that must be explicitly granted to $MAILINABOX_SMARTHOST_AUTH_USER. This is accomplished in the Mail-in-a-Box admin interface, by adding a new alias with these settings:"
+    echo "The mail hub user will be sending mail FROM other users, a privilege that must be explicitly granted to $MAILINABOX_SMARTHOST_AUTH_USER. This is accomplished in the Mail-in-a-Box admin interface, by adding a new catch-all alias with these settings:"
     echo ""
     echo "    Alias             = @$(hostname --fqdn || hostname)"
     echo "    Forwards to       = <leave this blank>"

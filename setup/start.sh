@@ -197,23 +197,8 @@ fi
 
 
 #
-# Run setup mods 
-#
-mod_count=0
-if [ -d "$LOCAL_MODS_DIR" ]; then
-    for mod in $(ls "$LOCAL_MODS_DIR" | grep -v '~$'); do
-        mod_path="$LOCAL_MODS_DIR/$mod"
-        if [ -f "$mod_path" -a -x "$mod_path" ]; then
-            echo ""
-            echo "Running mod: $mod_path"
-            "$mod_path" || die "Local mod '$mod' failed with exit code $?"
-            let mod_count+=1
-        fi
-    done
-fi
-if [ $mod_count -eq 0 ]; then
-    echo "No setup mods are enabled. To customize setup, please see setup/mods.available/README.md"
-fi
+# Setup mods
+source_miab_script setup/setupmods-miab.sh
 
 
 # run status checks

@@ -16,12 +16,12 @@ Vagrant.configure("2") do |config|
       m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
 export PRIMARY_HOSTNAME=vanilla-ciab.local
+export MAILINABOX_HOST=vanilla.local
+export MAILINABOX_SERVICE_PASSWORD=Test_LDAP_1234
+export MAILINABOX_SMARTHOST_AUTH_USER=qa@abc.com
+export MAILINABOX_SMARTHOST_AUTH_PASSWORD=Test_1234
 tests/system-setup/vanilla.sh -v --qa-ca; rc=$?  # --enable-mod=coturn
 echo "EXITCODE: $rc"
-if [ $rc -eq 0 ]; then
-   setup/connect-nextcloud-to-miab.sh /usr/local/nextcloud admin $(. /etc/cloudinabox.conf; . $STORAGE_ROOT/nextcloud/ciab_nextcloud.conf; echo "$NC_ADMIN_PASSWORD") vanilla.local Test_LDAP_1234
-   rc=$?
-fi
 exit $rc
 SH
     end

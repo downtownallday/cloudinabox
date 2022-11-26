@@ -24,3 +24,12 @@ keyfile_option() {
         echo "--key-file $EHDD_KEYFILE"
     fi
 }
+
+system_installed_with_encryption_at_rest() {
+    # must be mounted!
+    if [ -e "$EHDD_IMG" -a ! -z "$STORAGE_ROOT" -a \
+            -e "$STORAGE_ROOT/ssl/ssl_private_key.pem" ]; then
+        return 0
+    fi
+    return 1
+}

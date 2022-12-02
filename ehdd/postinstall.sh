@@ -4,7 +4,7 @@
 
 if system_installed_with_encryption_at_rest; then    
     echo ""
-    echo "** Disabling system services **"
+    echo "** Disabling system services that require encrypted HDD to be mounted **"
     systemctl disable --quiet nginx
     systemctl disable --quiet mariadb
     systemctl disable --quiet redis-server
@@ -14,5 +14,5 @@ if system_installed_with_encryption_at_rest; then
     echo ""
     echo "IMPORTANT:"
     echo "    Services have been disabled at startup because the encrypted HDD will"
-    echo "    be unavailable. Run ehdd/startup.sh after a reboot."
+    echo "    be unavailable. Run ehdd/run-this-after-reboot.sh after a reboot."
 fi

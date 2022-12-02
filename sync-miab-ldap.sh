@@ -71,6 +71,8 @@ ciab_files=(
     ./tests/suites/_init.sh
     ./tests/bin/restore_backup.sh
     ./conf/nginx-ssl.conf
+    ./conf/ehdd-unattended-upgrades-after.path
+    ./conf/ehdd-unattended-upgrades-after.service
     ./tools/editconf.php
     ./tools/editconf.py
     ./setup/connect-nextcloud-to-miab.sh
@@ -84,6 +86,8 @@ miab_files=(
     $miabdir/tests/suites/_init.sh
     $miabdir/tests/bin/restore_backup.sh
     $miabdir/conf/nginx-ssl.conf
+    $miabdir/conf/ehdd-unattended-upgrades-after.path
+    $miabdir/conf/ehdd-unattended-upgrades-after.service
     $miabdir/tools/editconf.php
     $miabdir/tools/editconf.py
     $miabdir/setup/mods.available/connect-nextcloud-to-miab.sh

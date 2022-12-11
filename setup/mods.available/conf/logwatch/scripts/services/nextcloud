@@ -66,6 +66,15 @@ sub hash_of_detail() {
     return sha1_hex($v);
 }
 
+sub make_urlkey() {
+    my ($method, $url) = @_;
+    # remove user names and GUIDs from url
+    my $reurl = $url;
+    $reurl =~ s/\/users\/[^\/]+\//\/users\/[USER]\//g;
+    $reurl =~ s/[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}/[GUID]/g;
+    return $method . " " . $reurl;
+}
+
 sub combine_detail() {
     # modifies $d2 by combining $d1 into $d2. it's assumed that $d1
     # and $d2 have the same hash as returned by hash_of_detail()
@@ -76,17 +85,22 @@ sub combine_detail() {
             ($d2->{"users"}->{$user} || 0) +
             $d1->{"users"}->{$user};
     }
-    foreach my $url ( keys %{$d1->{"urls"}} ) {
-        my $d1url = $d1->{"urls"}->{$url};
-        my $d2url = $d2->{"urls"}->{$url};
+    foreach my $urlkey ( keys %{$d1->{"urls"}} ) {
+        my $d1url = $d1->{"urls"}->{$urlkey};
+        my $d2url = $d2->{"urls"}->{$urlkey};
         if (! defined($d2url)) {
-            $d2->{"urls"}->{$url} = $d1url;
+            $d2->{"urls"}->{$urlkey} = $d1url;
         }
         else {
             $d2url->{"count"} += $d1url->{"count"};
             if (! defined($d2url->{"exception"})) {
                 $d2url->{"exception"} = $d1url->{"exception"};
             }
+        }
+        if ($detail_level < 10 && defined($d2url->{"exception"})) {
+            # the Trace array can be large, so don't cache it if we
+            # don't need it
+            delete $d2url->{"exception"}->{"Trace"};
         }
     }
 }
@@ -97,15 +111,30 @@ sub combine_detail() {
 #
 my $byapp = {
     # 'ERROR' => {
-    #   'app' => [
-    #       {
-    #         urls: { 'PUT /uri/path/': { count:n, exception:{ Exception:"", Message:"" } } },
-    #         message:'',
-    #         users:{'alice':n},
-    #         _count: n
+    #   _count: n,
+    #   'app' => {
+    #       'detail-sha1' => {
+    #           urls: {
+    #             'PUT /uri/path/': {
+    #                 count:n,
+    #                 exception: {
+    #                     Exception:"",
+    #                     Message:"",
+    #                     Code:n,
+    #                     Trace:[...]
+    #                 }
+    #             },
+    #             ...
+    #           },
+    #           message:'',
+    #           users: {
+    #             'alice':n,
+    #             ...
+    #           },
+    #           _count: n
     #       },
     #       ...
-    #   ],
+    #   },
     #   ...
     # },
     # ...
@@ -126,10 +155,11 @@ while(defined(my $line = <STDIN>)) {
             ) {
             croak "skip";
         }
-        
+
+        my $urlkey = &make_urlkey($lineref->{"method"}, $lineref->{"url"});
         my $detail = {
             urls => {
-                $lineref->{"method"} . " " . $lineref->{"url"} => {
+                $urlkey => {
                     count => 1,
                     method => $lineref->{"method" },
                     url => $lineref->{"url"},
@@ -147,8 +177,9 @@ while(defined(my $line = <STDIN>)) {
         
         my $level_name = &level_name_from_level($level, 0);
         if (! defined $byapp->{$level_name}) {
-            $byapp->{$level_name} = {};
+            $byapp->{$level_name} = { _count => 0 };
         }
+        $byapp->{$level_name}->{"_count"} += 1;
         
         my $app = $lineref->{"app"};
         if (! defined $byapp->{$level_name}->{$app}) {
@@ -192,23 +223,27 @@ for (my $level=4; $level>=0; $level--) {
     my $level_name_friendly = &level_name_from_level($level, 1);
     if ($lineno >0) { print "\n"; }
     if ($format_type eq 'html') {
-        print "$level_name_friendly\n";
+        print $byapp->{$level_name}->{"_count"}, " ",
+            "$level_name_friendly\n";
     }
     else {
-        print "*** ", $level_name_friendly, " ***\n";
+        print "*** ",
+            $byapp->{$level_name}->{"_count"}, " ",
+            $level_name_friendly,
+            " ***\n";
     }
 
     my $appidx = -1;
     my $indent_amt = 1;
     
-    foreach my $app (sort keys %{$byapp->{$level_name}}) {
+    foreach my $app_name (sort keys %{$byapp->{$level_name}}) {
+        if ($app_name eq "_count") { next; }
         ++$appidx;
         if ($appidx > 0) { print "\n"; }
-        print ${indent}x$indent_amt, $app, ":\n";
-        my $app = $byapp->{$level_name}->{$app};
-        ++$indent_amt;
+        print ${indent}x$indent_amt, $app_name, ":\n";
+        my $app = $byapp->{$level_name}->{$app_name};
         
-        foreach my $detail_hash (keys %$app) {
+        foreach my $detail_hash (sort { $app->{$b}->{"_count"} <=> $app->{$a}->{"_count"} } keys %$app) {
             my $detail = $app->{$detail_hash};
             my @users = sort { lc($a) cmp lc($b) } keys %{$detail->{"users"}};
             my $users_msg = " [" . join(",", @users) . "]";
@@ -216,8 +251,7 @@ for (my $level=4; $level>=0; $level--) {
                 $users_msg = "";
             }
 
-            print ${indent}x$indent_amt, $detail->{"_count"}, " times", $users_msg, ": ", $detail->{"message"}, "\n";
-            ++$indent_amt;
+            print ${indent}x($indent_amt+1), $detail->{"_count"}, " times", $users_msg, ": ", $detail->{"message"}, "\n";
 
             if ($detail_level >= 5) {
                 # logwatch Medium detail or higher
@@ -228,9 +262,23 @@ for (my $level=4; $level>=0; $level--) {
                 else {            
                     foreach my $urlkey (@urlkeys) {
                         my $url = $detail->{"urls"}->{$urlkey};
-                        print ${indent}x$indent_amt, "->", $url->{"count"}, ":", $urlkey;
+                        print ${indent}x($indent_amt+2), "->", $url->{"count"}, ":", $urlkey;
                         if (defined($url->{"exception"})) {
                             print " (", $url->{"exception"}->{"Exception"}, ")";
+                            if ($detail_level >= 10 && defined($url->{"exception"}->{"Trace"})) {
+                                print "\n";
+                                print ${indent}x($indent_amt+3), "Trace:\n";
+                                my $first = 1;
+                                foreach my $trace_item (@{$url->{"exception"}->{"Trace"}}) {
+                                    my $line = $trace_item->{"line"};
+                                    my $func = $trace_item->{"class"} ? $trace_item->{"class"} . "::" : "";
+                                    $func .= $trace_item->{"function"};
+                                    print ${indent}x($indent_amt+4);
+                                    if (! $first) { print ".."; }
+                                    $first=0;
+                                    print $func, $line ? "($line)" : "", "\n";
+                                }
+                        }
                         }
                         print "\n";
                     }

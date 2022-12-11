@@ -92,7 +92,7 @@ sub combine_detail() {
             $d2->{"urls"}->{$urlkey} = $d1url;
         }
         else {
-            $d2url->{"count"} += $d1url->{"count"};
+            $d2url->{"_count"} += $d1url->{"_count"};
             if (! defined($d2url->{"exception"})) {
                 $d2url->{"exception"} = $d1url->{"exception"};
             }
@@ -107,7 +107,8 @@ sub combine_detail() {
 
 
 #
-# organize log entries by log level, then by app name
+# organize log entries by log level, then by app name, then sha1 hash
+# of message
 #
 my $byapp = {
     # 'ERROR' => {
@@ -116,7 +117,7 @@ my $byapp = {
     #       'detail-sha1' => {
     #           urls: {
     #             'PUT /uri/path/': {
-    #                 count:n,
+    #                 _count:n,
     #                 exception: {
     #                     Exception:"",
     #                     Message:"",
@@ -160,7 +161,7 @@ while(defined(my $line = <STDIN>)) {
         my $detail = {
             urls => {
                 $urlkey => {
-                    count => 1,
+                    _count => 1,
                     method => $lineref->{"method" },
                     url => $lineref->{"url"},
                     exception => $lineref->{"exception"}
@@ -207,9 +208,86 @@ while(defined(my $line = <STDIN>)) {
     };
 }
 
+
 #
-# print the report
+# output the report
 #
+
+sub print_detail() {
+    # print detail for NC error + NC app
+    # detail is a reference to hash of this format:
+    # {
+    #   urls: {
+    #     'PUT /uri/path/': {
+    #         _count:n,
+    #         exception: {
+    #             Exception:"",
+    #             Message:"",
+    #             Code:n,
+    #             Trace:[...]
+    #         }
+    #     },
+    #     ...
+    #   },
+    #   message:'',
+    #   users: {
+    #     'alice':n,
+    #     ...
+    #   },
+    #   _count: n
+    # }
+    #
+    my ($detail, $indent, $indent_amt) = @_;
+    
+    my @users = sort { lc($a) cmp lc($b) } keys %{$detail->{"users"}};
+    my $users_msg = " [" . join(",", @users) . "]";
+    if ($#users == 0 && $users[0] eq '--') {
+        $users_msg = "";
+    }
+    
+    print ${indent}x$indent_amt,
+        $detail->{"_count"}, " times",
+        $users_msg, ": ",
+        $detail->{"message"}, "\n";
+    
+    if ($detail_level < 5) {
+        return;
+    }
+    
+    # logwatch Medium detail or higher
+    my @urlkeys = sort { $detail->{"urls"}->{$b}->{"_count"} <=> $detail->{"urls"}->{$a}->{"_count"} } keys %{$detail->{"urls"}};
+    if ($#urlkeys == 0 && $detail->{"urls"}->{$urlkeys[0]}->{"method"} eq "") {
+        # special case: internal NC error not caused by a web request
+        return;
+    }
+    
+    foreach my $urlkey (@urlkeys) {
+        my $url = $detail->{"urls"}->{$urlkey};
+        print ${indent}x($indent_amt+1), "->", $url->{"_count"}, ":", $urlkey;
+        if (defined($url->{"exception"})) {
+            print " (", $url->{"exception"}->{"Exception"}, ")";
+            if ($detail_level >= 10 && defined($url->{"exception"}->{"Trace"})) {
+                # logwatch High detail - backtrace
+                print "\n";
+                print ${indent}x($indent_amt+2), "Trace:\n";
+                my $first = 1;
+                foreach my $trace_item (@{$url->{"exception"}->{"Trace"}}) {
+                    my $line = $trace_item->{"line"};
+                    my $func = $trace_item->{"class"} ? $trace_item->{"class"} . "::" : "";
+                    $func .= $trace_item->{"function"};
+                    print ${indent}x($indent_amt+3);
+                    if (! $first) { print ".."; }
+                    $first=0;
+                    print $func, $line ? "($line)" : "", "\n";
+                }
+            }
+        }
+        print "\n";
+    }
+}
+
+
+
 $lineno = -1;
 my $indent = " "x3;
 
@@ -219,7 +297,8 @@ for (my $level=4; $level>=0; $level--) {
         next;
     }
     ++$lineno;
-    
+
+    # print NC error level (eg "Warnings")
     my $level_name_friendly = &level_name_from_level($level, 1);
     if ($lineno >0) { print "\n"; }
     if ($format_type eq 'html') {
@@ -238,6 +317,8 @@ for (my $level=4; $level>=0; $level--) {
     
     foreach my $app_name (sort keys %{$byapp->{$level_name}}) {
         if ($app_name eq "_count") { next; }
+
+        # print NC application name (eg "webdav")
         ++$appidx;
         if ($appidx > 0) { print "\n"; }
         print ${indent}x$indent_amt, $app_name, ":\n";
@@ -245,45 +326,7 @@ for (my $level=4; $level>=0; $level--) {
         
         foreach my $detail_hash (sort { $app->{$b}->{"_count"} <=> $app->{$a}->{"_count"} } keys %$app) {
             my $detail = $app->{$detail_hash};
-            my @users = sort { lc($a) cmp lc($b) } keys %{$detail->{"users"}};
-            my $users_msg = " [" . join(",", @users) . "]";
-            if ($#users == 0 && $users[0] eq '--') {
-                $users_msg = "";
-            }
-
-            print ${indent}x($indent_amt+1), $detail->{"_count"}, " times", $users_msg, ": ", $detail->{"message"}, "\n";
-
-            if ($detail_level >= 5) {
-                # logwatch Medium detail or higher
-                my @urlkeys = sort { $detail->{"urls"}->{$b}->{"count"} <=> $detail->{"urls"}->{$a}->{"count"} } keys %{$detail->{"urls"}};
-                if ($#urlkeys == 0 && $detail->{"urls"}->{$urlkeys[0]}->{"method"} eq "") {
-                    # special case: internal NC error not caused by a web request
-                }
-                else {            
-                    foreach my $urlkey (@urlkeys) {
-                        my $url = $detail->{"urls"}->{$urlkey};
-                        print ${indent}x($indent_amt+2), "->", $url->{"count"}, ":", $urlkey;
-                        if (defined($url->{"exception"})) {
-                            print " (", $url->{"exception"}->{"Exception"}, ")";
-                            if ($detail_level >= 10 && defined($url->{"exception"}->{"Trace"})) {
-                                print "\n";
-                                print ${indent}x($indent_amt+3), "Trace:\n";
-                                my $first = 1;
-                                foreach my $trace_item (@{$url->{"exception"}->{"Trace"}}) {
-                                    my $line = $trace_item->{"line"};
-                                    my $func = $trace_item->{"class"} ? $trace_item->{"class"} . "::" : "";
-                                    $func .= $trace_item->{"function"};
-                                    print ${indent}x($indent_amt+4);
-                                    if (! $first) { print ".."; }
-                                    $first=0;
-                                    print $func, $line ? "($line)" : "", "\n";
-                                }
-                        }
-                        }
-                        print "\n";
-                    }
-                }
-            }
+            &print_detail($detail, $indent, $indent_amt+1);
         }
     }
 }

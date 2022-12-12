@@ -52,7 +52,9 @@ logwatch_install() {
     fi
 
     # install our custom logwatch filters
-    cp -R setup/mods.available/conf/logwatch/* /etc/logwatch/
+    if [ -d setup/mods.available/conf/logwatch ]; then
+        cp -R setup/mods.available/conf/logwatch/* /etc/logwatch/
+    fi
 
     tools/editconf.py /etc/logwatch/conf/logwatch.conf -case-insensitive "${settings[@]}"    
     install_hook_handler "setup/mods.available/hooks/logwatch-hooks.py"

@@ -1,0 +1,134 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Logwatch ":dates";
+
+my $SearchDate = TimeFilter("%Y-%m-%dT%H:%M:%S[+-][0-9]{2}:[0-9]{2}");
+
+# logwatch detail:
+#  0 (low): display only errors and security-related issues
+#  5 (med): display anything that a typical admin would want to see
+# 10 (high): display anything that a paranoid admin would want to see
+
+my $debug = $ENV{'LOGWATCH_DEBUG'} || 0;
+my $detail_level = $ENV{'LOGWATCH_DETAIL_LEVEL'} || 0;
+my $format_type = $ENV{'LOGWATCH_FORMAT_TYPE'};  # always lowercase
+my $range = $ENV{'LOGWATCH_DATE_RANGE'};
+my $tmpdir = $ENV{'LOGWATCH_TEMP_DIR'};
+
+
+sub table_from_snap_output() {
+    my($output) = @_;
+    my $table = ();
+    my @lines = split(/\n/, $output);
+    if ($#lines<1) {
+        return undef;
+    }
+    my @cols = split(/[ \t]+/, $lines[0]);
+    shift(@lines);
+    foreach my $line (@lines) {
+        my @vals = split(/[ \t]+/, $line, $#cols + 1);
+        my $row = {};
+        for (my $idx=0; $idx<=$#vals; $idx++) {
+            $row->{$cols[$idx]} = $vals[$idx];
+        }
+        push(@$table, $row);
+    }
+    return $table;
+}
+
+sub find_row() {
+    my ($table, $col, $val) = @_;
+    foreach my $row (@$table) {
+        if (defined($row->{$col}) && $row->{$col} eq $val) {
+            return $row;
+        }
+    }
+}
+
+sub output_table() {
+    my($table) = @_;
+    foreach my $row (@$table) {
+        foreach my $k (keys %$row) {
+            print "$k = ", $row->{$k}, "\n";
+        }
+    }
+}
+
+
+# Example output:
+#>snap list
+#No snaps are installed yet. Try 'snap install hello-world'.
+#[exit code 0]
+#
+#> snap list
+#Name    Version        Rev    Tracking       Publisher    Notes
+#core20  20221123       1738   latest/stable  canonical✓   base
+#emacs   28.2           1729   latest/stable  alexmurray✪  classic
+#lxd     5.0.1-9dcf35b  23541  5.0/stable/…   canonical✓   -
+#snapd   2.57.6         17883  latest/stable  canonical✓   snapd
+#[exit code 0]
+
+my $output = `snap list --color=never --all 2>&1`;
+print STDERR "ERROR: $output" if $?!=0;
+my $snap_list = &table_from_snap_output($output) if $?==0;
+
+
+# Example output:
+#> snap refresh --list
+#Name   Version  Rev   Size   Publisher    Notes
+#emacs  28.2     1753  241MB  alexmurray✪  classic
+#[exit code 0]
+
+$output = `snap refresh --list --abs-time --color=never`;
+print STDERR "ERROR: $output" if $?!=0;
+my $snap_refresh_list = &table_from_snap_output($output) if $?==0;
+
+
+my $pending = 0;
+if (defined($snap_list) && defined($snap_refresh_list)) {
+    foreach my $row (@$snap_refresh_list) {
+        my $cur = &find_row($snap_list, "Name", $row->{"Name"});
+        if (! $pending) {
+            print "Pending updates:\n";
+            $pending = 1;
+        }	    
+        print "    ",
+            $cur->{"Name"}, " (", $row->{"Size"}, ")",
+            ": v", $cur->{"Version"}, " rev. ", $cur->{"Rev"},
+            " -> v", $row->{"Version"}, " rev. ", $row->{"Rev"},
+            "\n";
+    }
+}
+
+
+# Example output:
+#> snap changes --abs-time
+#no changes found
+#[exit code = 0]
+#
+#> snap changes --abs-time
+#ID   Status  Spawn                      Ready                      Summary
+#248  Done    2022-12-10T08:44:39-05:00  2022-12-10T08:44:45-05:00  Auto-refresh snap "core22"
+#249  Done    2022-12-11T20:27:00-05:00  2022-12-11T20:27:00-05:00  Refresh all snaps: no updates
+#[exit code = 0]
+
+$output = `snap changes --abs-time 2>&1`;
+print STDERR "ERROR: $output" if $?!=0;
+my $snap_changes = &table_from_snap_output($output) if $?==0;
+
+my $changes = 0;
+if (defined($snap_changes)) {
+    foreach my $row (@$snap_changes) {
+        if ($row->{"Spawn"} =~ /$SearchDate/) {
+            if (! $changes) {
+                if ($pending) { print "\n"; }
+                print "Recent changes:\n";
+                $changes = 1;
+            }
+            print "    ", $row->{"Summary"}, " (",
+                $row->{"Spawn"}, ", ", $row->{"Status"}, ")\n";
+        }
+    }
+}

@@ -81,7 +81,7 @@ my $snap_list = &table_from_snap_output($output) if $?==0;
 #emacs  28.2     1753  241MB  alexmurray✪  classic
 #[exit code 0]
 
-$output = `snap refresh --list --abs-time --color=never`;
+$output = `snap refresh --list --abs-time --color=never 2>&1`;
 print STDERR "ERROR: $output" if $?!=0;
 my $snap_refresh_list = &table_from_snap_output($output) if $?==0;
 

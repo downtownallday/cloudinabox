@@ -1,0 +1,332 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use JSON;
+use Carp;
+use Try::Tiny;
+use Digest::SHA qw(sha1_hex);
+
+# logwatch detail:
+#  0 (low): display only errors and security-related issues
+#  5 (med): display anything that a typical admin would want to see
+# 10 (high): display anything that a paranoid admin would want to see
+
+my $debug = $ENV{'LOGWATCH_DEBUG'} || 0;
+my $detail_level = $ENV{'LOGWATCH_DETAIL_LEVEL'} || 0;
+my $format_type = $ENV{'LOGWATCH_FORMAT_TYPE'};  # always lowercase
+my $range = $ENV{'LOGWATCH_DATE_RANGE'};
+my $tmpdir = $ENV{'LOGWATCH_TEMP_DIR'};
+
+my $json = JSON->new;
+$json->relaxed($JSON::true);
+$json->allow_unknown($JSON::true);
+$json->max_size(0);
+my $lineno = -1;
+
+# Nextcloud logging levels:
+# 0: DEBUG: All activity; the most detailed logging.
+# 1: INFO: Activity such as user logins and file activities, plus warnings, errors, and fatal errors.
+# 2: WARN: Operations succeed, but with warnings of potential problems, plus errors and fatal errors.
+# 3: ERROR: An operation fails, but other services and operations continue, plus fatal errors.
+# 4: FATAL: The server stops.
+
+my @NC_LEVEL_NAMES= (
+    'DEBUG',   # 0
+    'INFO',    # 1
+    'WARNING', # 2
+    'ERROR',   # 3
+    'FATAL'    # 4
+    );
+
+my @NC_LEVEL_NAMES_FRIENDLY= (
+    'Debug',
+    'Information',
+    'Warnings',
+    'Errors',
+    'Fatal Errors'
+    );
+    
+sub level_name_from_level() {
+    my ($level, $friendly) = @_;
+    if ($level > $#NC_LEVEL_NAMES) {
+        croak "Invalid level $level";
+    }
+    if (! defined($friendly) || $friendly) {
+        return $NC_LEVEL_NAMES_FRIENDLY[$level];
+    }
+    else {
+        return $NC_LEVEL_NAMES[$level];
+    }
+}
+
+sub hash_of_detail() {
+    my ($detail_ref) = @_;
+    my $v = $detail_ref->{"message"};
+    return sha1_hex($v);
+}
+
+sub make_urlkey() {
+    my ($method, $url) = @_;
+    # remove user names and GUIDs from url
+    my $reurl = $url;
+    $reurl =~ s/\/users\/[^\/]+\//\/users\/[USER]\//g;
+    $reurl =~ s/[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}/[GUID]/g;
+    return $method . " " . $reurl;
+}
+
+sub combine_detail() {
+    # modifies $d2 by combining $d1 into $d2. it's assumed that $d1
+    # and $d2 have the same hash as returned by hash_of_detail()
+    my ($d1, $d2) = @_;
+    $d2->{"_count"} += $d1->{"_count"};
+    foreach my $user ( keys %{$d1->{"users"}} ) {
+        $d2->{"users"}->{$user} =
+            ($d2->{"users"}->{$user} || 0) +
+            $d1->{"users"}->{$user};
+    }
+    foreach my $urlkey ( keys %{$d1->{"urls"}} ) {
+        my $d1url = $d1->{"urls"}->{$urlkey};
+        my $d2url = $d2->{"urls"}->{$urlkey};
+        if (! defined($d2url)) {
+            $d2->{"urls"}->{$urlkey} = $d1url;
+        }
+        else {
+            $d2url->{"_count"} += $d1url->{"_count"};
+            if (! defined($d2url->{"exception"})) {
+                $d2url->{"exception"} = $d1url->{"exception"};
+            }
+        }
+        if ($detail_level < 10 && defined($d2url->{"exception"})) {
+            # the Trace array can be large, so don't cache it if we
+            # don't need it
+            delete $d2url->{"exception"}->{"Trace"};
+        }
+    }
+}
+
+
+#
+# organize log entries by log level, then by app name, then sha1 hash
+# of message
+#
+my $byapp = {
+    # 'ERROR' => {
+    #   _count: n,
+    #   'app' => {
+    #       'detail-sha1' => {
+    #           urls: {
+    #             'PUT /uri/path/': {
+    #                 _count:n,
+    #                 exception: {
+    #                     Exception:"",
+    #                     Message:"",
+    #                     Code:n,
+    #                     Trace:[...]
+    #                 }
+    #             },
+    #             ...
+    #           },
+    #           message:'',
+    #           users: {
+    #             'alice':n,
+    #             ...
+    #           },
+    #           _count: n
+    #       },
+    #       ...
+    #   },
+    #   ...
+    # },
+    # ...
+};
+
+
+while(defined(my $line = <STDIN>)) {
+    ++$lineno;
+    try {
+        my $lineref = $json->decode($line);
+        my $level = $lineref->{"level"};
+        if (
+            # Low detail: warning, error and fatal log entries
+            $detail_level < 5 && $level < 2 ||
+            # Med detail: include info entries
+            $detail_level < 10 && $level < 1
+            # High: include debug entries
+            ) {
+            croak "skip";
+        }
+
+        my $urlkey = &make_urlkey($lineref->{"method"}, $lineref->{"url"});
+        my $detail = {
+            urls => {
+                $urlkey => {
+                    _count => 1,
+                    method => $lineref->{"method" },
+                    url => $lineref->{"url"},
+                    exception => $lineref->{"exception"}
+                }
+            },
+            message => $lineref->{"message"},
+            users => { $lineref->{"user"} => 1 },
+            _count => 1,
+        };
+
+        if (! $detail->{"message"} && defined($lineref->{"exception"})) {
+            $detail->{"message"} = $lineref->{"exception"}->{"Exception"};
+        }
+        
+        my $level_name = &level_name_from_level($level, 0);
+        if (! defined $byapp->{$level_name}) {
+            $byapp->{$level_name} = { _count => 0 };
+        }
+        $byapp->{$level_name}->{"_count"} += 1;
+        
+        my $app = $lineref->{"app"};
+        if (! defined $byapp->{$level_name}->{$app}) {
+            $byapp->{$level_name}->{$app} = {};
+        }
+
+        my $detail_hash = &hash_of_detail($detail);
+        if (! defined $byapp->{$level_name}->{$app}->{$detail_hash}) {
+            $byapp->{$level_name}->{$app}->{$detail_hash} = $detail;
+        }
+        else {
+            &combine_detail(
+                 $detail,
+                 $byapp->{$level_name}->{$app}->{$detail_hash}
+            );
+        }
+            
+    } catch {
+        # couldn't decode or some other failure
+        if ($_ !~ /^skip / && $debug>0) {
+            chomp($line);
+            print STDERR "Could not parse input line $lineno: $line: $_\n";
+        }
+
+    };
+}
+
+
+#
+# output the report
+#
+
+sub print_detail() {
+    # print detail for NC error + NC app
+    # detail is a reference to hash of this format:
+    # {
+    #   urls: {
+    #     'PUT /uri/path/': {
+    #         _count:n,
+    #         exception: {
+    #             Exception:"",
+    #             Message:"",
+    #             Code:n,
+    #             Trace:[...]
+    #         }
+    #     },
+    #     ...
+    #   },
+    #   message:'',
+    #   users: {
+    #     'alice':n,
+    #     ...
+    #   },
+    #   _count: n
+    # }
+    #
+    my ($detail, $indent, $indent_amt) = @_;
+    
+    my @users = sort { lc($a) cmp lc($b) } keys %{$detail->{"users"}};
+    my $users_msg = " [" . join(",", @users) . "]";
+    if ($#users == 0 && $users[0] eq '--') {
+        $users_msg = "";
+    }
+    
+    print ${indent}x$indent_amt,
+        $detail->{"_count"}, " times",
+        $users_msg, ": ",
+        $detail->{"message"}, "\n";
+    
+    if ($detail_level < 5) {
+        return;
+    }
+    
+    # logwatch Medium detail or higher
+    my @urlkeys = sort { $detail->{"urls"}->{$b}->{"_count"} <=> $detail->{"urls"}->{$a}->{"_count"} } keys %{$detail->{"urls"}};
+    if ($#urlkeys == 0 && $detail->{"urls"}->{$urlkeys[0]}->{"method"} eq "") {
+        # special case: internal NC error not caused by a web request
+        return;
+    }
+    
+    foreach my $urlkey (@urlkeys) {
+        my $url = $detail->{"urls"}->{$urlkey};
+        print ${indent}x($indent_amt+1), "->", $url->{"_count"}, ":", $urlkey;
+        if (defined($url->{"exception"})) {
+            print " (", $url->{"exception"}->{"Exception"}, ")";
+            if ($detail_level >= 10 && defined($url->{"exception"}->{"Trace"})) {
+                # logwatch High detail - backtrace
+                print "\n";
+                print ${indent}x($indent_amt+2), "Trace:\n";
+                my $first = 1;
+                foreach my $trace_item (@{$url->{"exception"}->{"Trace"}}) {
+                    my $line = $trace_item->{"line"};
+                    my $func = $trace_item->{"class"} ? $trace_item->{"class"} . "::" : "";
+                    $func .= $trace_item->{"function"};
+                    print ${indent}x($indent_amt+3);
+                    if (! $first) { print ".."; }
+                    $first=0;
+                    print $func, $line ? "($line)" : "", "\n";
+                }
+            }
+        }
+        print "\n";
+    }
+}
+
+
+
+$lineno = -1;
+my $indent = " "x3;
+
+for (my $level=4; $level>=0; $level--) {
+    my $level_name = &level_name_from_level($level, 0);
+    if (! defined $byapp->{$level_name}) {
+        next;
+    }
+    ++$lineno;
+
+    # print NC error level (eg "Warnings")
+    my $level_name_friendly = &level_name_from_level($level, 1);
+    if ($lineno >0) { print "\n"; }
+    if ($format_type eq 'html') {
+        print $byapp->{$level_name}->{"_count"}, " ",
+            "$level_name_friendly\n";
+    }
+    else {
+        print "*** ",
+            $byapp->{$level_name}->{"_count"}, " ",
+            $level_name_friendly,
+            " ***\n";
+    }
+
+    my $appidx = -1;
+    my $indent_amt = 1;
+    
+    foreach my $app_name (sort keys %{$byapp->{$level_name}}) {
+        if ($app_name eq "_count") { next; }
+
+        # print NC application name (eg "webdav")
+        ++$appidx;
+        if ($appidx > 0) { print "\n"; }
+        print ${indent}x$indent_amt, $app_name, ":\n";
+        my $app = $byapp->{$level_name}->{$app_name};
+        
+        foreach my $detail_hash (sort { $app->{$b}->{"_count"} <=> $app->{$a}->{"_count"} } keys %$app) {
+            my $detail = $app->{$detail_hash};
+            &print_detail($detail, $indent, $indent_amt+1);
+        }
+    }
+}

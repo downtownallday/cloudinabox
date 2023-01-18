@@ -52,9 +52,7 @@ def do_hook(hook_name, hook_data, mods_env):
             "%Y-%m-%d %H:%M:%S",
             time.localtime(since_mtime)
         )
-        # "for that second" is causing logwatch to hang indefinetly
-        #since = 'since %s for that second' % local_str
-        since = 'since %s for that minute' % local_str
+        since = 'since %s for that second' % local_str
         since_desc = 'since %s' % local_str
 
     # run logwatch

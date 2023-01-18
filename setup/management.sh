@@ -159,7 +159,7 @@ create_utils_py() {
     say_verbose "create management/utils.py from mail-in-a-box's utils.py"
     echo "# GENERATED FILE - DO NOT EDIT - GENERATED FROM utils-miab.py" > management/utils.py || die "Could not create utils.py"
     cat "management/utils-miab.py" >>"management/utils.py" || die "Could not append utils-miab.py"
-    sed -i 's/\/etc\/mailinabox\.conf/\/etc\/cloudinabox.conf/' "management/utils.py"
+    sed -i 's/\/etc\/mailinabox\.conf/\/etc\/cloudinabox.conf/g' "management/utils.py"
 }
 
 

@@ -49,7 +49,7 @@ do
 		      "post_max_size = 3G" \
               "short_open_tag = On" \
 	          "opcache.enable=1" \
-	          "opcache.interned_strings_buffer=8" \
+	          "opcache.interned_strings_buffer=16" \
 	          "opcache.max_accelerated_files=10000" \
 	          "opcache.memory_consumption=128" \
 	          "opcache.save_comments=1" \

@@ -5,6 +5,7 @@
 
 # see: https://docs.nextcloud.com/server/NEXTCLOUD_VERSION/admin_manual/installation/system_requirements.html
 # Nextcloud version   Nextcloud PHPs   Jammy Focal Bionic
+# 27                  8.1, 8.2         x
 # 26                  8.0, 8.1, 8.2    x
 # 25                  7.4, 8.0, 8.1    x      x
 # 24                  7.4, 8.0, 8.1    x      x
@@ -21,5 +22,5 @@
 18:7.2:17:20
 19:7.3:18:23
 20:7.4:18:25
-21:8.0:21:
+21:8.0:21:26
 22:8.1:24:

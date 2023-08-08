@@ -214,14 +214,15 @@ update_nextcloud_config() {
                  0 => 'OC\\Preview\\PNG',
                  1 => 'OC\\Preview\\JPEG',
                  2 => 'OC\\Preview\\GIF',
-                 3 => 'OC\\Preview\\BMP',
-                 4 => 'OC\\Preview\\XBitmap',
-                 5 => 'OC\\Preview\\Movie',
-                 6 => 'OC\\Preview\\MP3',
-                 7 => 'OC\\Preview\\TXT',
-                 8 => 'OC\\Preview\\MarkDown')" \
-         '+preview_max_x' 1024 \
-         '+preview_max_y' 768 \
+                 3 => 'OC\\Preview\\HEIC',
+                 4 => 'OC\\Preview\\BMP',
+                 5 => 'OC\\Preview\\XBitmap',
+                 6 => 'OC\\Preview\\Movie',
+                 7 => 'OC\\Preview\\MP3',
+                 8 => 'OC\\Preview\\TXT',
+                 9 => 'OC\\Preview\\MarkDown')" \
+         '+preview_max_x' 1440 \
+         '+preview_max_y' 1080 \
          '+preview_max_scale_factor' 1 \
          'filesystem_check_changes' 0 \
          'log_type' 'file' \

@@ -30,7 +30,7 @@ if ! $dry_run; then
     else
         snap install --classic emacs
     fi
-    apt-get install -y -qq ntpdate
+    apt-get install -y -qq ntpdate net-tools jq
 
     # remove apache, which is what setup will do
     apt-get -y -qq purge apache2 apache2-\*

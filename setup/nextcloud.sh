@@ -185,7 +185,7 @@ update_nextcloud_config() {
     fi
     
     local addr
-    for addr in $(ip --brief address | awk '{print $3; print $4}' | awk -F/ '{print $1}'); do
+    for addr in $(ip --brief address | awk '{print $3; print $NF}' | awk -F/ '{print $1}' | sort -u); do
         trusted_domains+=("$addr")
     done
 

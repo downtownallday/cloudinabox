@@ -18,7 +18,6 @@ if [ ! -f $STORAGE_ROOT/backup/secret_key.txt ]; then
     $(umask 077; openssl rand -base64 2048 > $STORAGE_ROOT/backup/secret_key.txt)
 fi
 
-
 create_backup_py() {
     # create backup.py from backup-miab.py
     # * modify the list of services to stop/start
@@ -101,6 +100,12 @@ IN_DEF && /wait_for_service/ { print "# "$0; next }
     # (start_cmds)
 
     local stop_cmds=(
+        "code, ret = shell('check_output', ['/usr/bin/sudo', '-u', 'www-data', 'php${phpver}', '/usr/local/nextcloud/occ', 'app:list'], trap=True)"
+        "if code == 0:"
+        "  with open('$STORAGE_ROOT/nextcloud/app.list','w') as of: of.write(ret)"        
+        "code, ret = shell('check_output', ['/usr/bin/sudo', '-u', 'www-data', 'php${phpver}', '/usr/local/nextcloud/occ', 'config:list'], trap=True)"
+        "if code == 0:"
+        "  with open('$STORAGE_ROOT/nextcloud/config.list','w') as of: of.write(ret)"        
         "code, ret = shell('check_output', ['/usr/bin/sudo', '-u', 'www-data', 'php${phpver}', '/usr/local/nextcloud/occ', 'maintenance:mode', '--on'], capture_stderr=True, trap=True)"
         "if code != 0: print(ret)"
         "if code != 0: sys.exit(code)"

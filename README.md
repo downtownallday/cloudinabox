@@ -16,7 +16,7 @@ See [Mail-in-a-Box LDAP](https://github.com/downtownallday/mailinabox-ldap).
 
 The primary purpose of this project is be able to easly deploy and maintain a cloud server (Nextcloud) for a home or small business, and together with Mail-in-a-Box LDAP, share a single user account database and similar installation and maintenance experiences. That said, both Mail-in-a-Box and Cloud-in-a-Box work just fine independently as well.
 
-Cloud-in-a-Box works only on Ubuntu 20 (Focal) and Ubuntu 22 (Jammy).
+Cloud-in-a-Box works only on Ubuntu 22 (Jammy).
 
 For current users: if you're currently on Ubuntu 20 (Focal) and wish to upgrade to Ubuntu 22 (Jammy), your Nextcloud installation MUST BE AT VERSION 24 OR HIGHER. Do not upgrade to Jammy without first upgrading Nextcloud.
 
@@ -38,7 +38,7 @@ Note that Mail-in-a-Box LDAP is a fork of Mail-in-a-Box that supports LDAP for u
 
 ## Installation
 
-1. on a fresh Ubuntu 20 (Focal) or Ubuntu 22 (Jammy) system, install git `apt-get install git`
+1. on a fresh Ubuntu 22 (Jammy) system, install git `apt-get install git`
 2. from your home directory, clone the source code repo `git clone https://github.com/downtownallday/cloudinabox.git cloudinabox`
 3. checkout the latest version `git checkout v0.8`
 4. set your working directory to cloudinabox `cd cloudinabox`

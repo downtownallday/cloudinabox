@@ -3,6 +3,7 @@ load './funcs.rb'
 Vagrant.configure("2") do |config|
 
   config.vm.synced_folder "../..", "/cloudinabox", id: "cloudinabox", automount: false
+  config.vm.network "public_network", bridge: "#$default_network_interface"
 
   #
   # vanilla with ubuntu 20 (focal), then upgrade to ubuntu 22 (jammy)
@@ -68,17 +69,16 @@ SH
   end
 
   #
-  # focal
   # from-backup: restore a backup, then install
   #
 
   config.vm.define "from-backup" do |m1|
-    use_preloaded_box m1, "ubuntu/focal64"
+    use_preloaded_box m1, "ubuntu/jammy64"
     m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
 export PRIMARY_HOSTNAME=qacloud.int.com
-tests/system-setup/from-backup.sh backup1 || exit 1
-tests/runner.sh default upgrade-backup1 || exit 2
+tests/system-setup/from-backup.sh backup2 || exit 1
+tests/runner.sh default upgrade-backup2 || exit 2
 SH
   end
 

@@ -13,7 +13,7 @@ done
 
 vagrant box update
 
-for box in "preloaded-ubuntu-focal64" "preloaded-ubuntu-jammy64"
+for box in "preloaded-ubuntu-jammy64"
 do
     vagrant up $box | tee /tmp/$box.out
     upcode=$?

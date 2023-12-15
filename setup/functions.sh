@@ -159,14 +159,15 @@ get_required_php_version() {
     get_os_release
 
     # read the supported nextcloud versions matix file
-    local phpver ncmin ncmax
+    local phpver ncmin ncmax  nc_pretty_range
     phpver=$(awk -F: "/^${OS_MAJOR}:/ { print \$2 }" conf/nextcloud_os_matrix.txt)
     [ $? -ne 0 ] && die "Unable to read conf/nextcloud_os_matrix.txt"
     [ -z "$phpver" ] && die "Unsupported OS version (OS_MAJOR=$OS_MAJOR) - see conf/nextcloud_os_matrix.txt"
     ncmin=$(awk -F: "/^${OS_MAJOR}:/ { print \$3 }" conf/nextcloud_os_matrix.txt)
     ncmax=$(awk -F: "/^${OS_MAJOR}:/ { print \$4 }" conf/nextcloud_os_matrix.txt)
     [ -z "$ncmin" ] && die "Invalid value for nextcloud min/max in conf/nextcloud_os_matrix.txt"
-    say_verbose "Nextcloud versions supported by this OS: ${ncmin}-${ncmax:-latest}"
+    [ -z "$ncmax" ] && nc_pretty_range="${ncmin}+" || nc_pretty_range="${ncmin}-${ncmax}"
+    say_verbose "Nextcloud versions supported by this OS: ${nc_pretty_range}"
 
     
     # on return, these globals are set
@@ -205,12 +206,12 @@ get_required_php_version() {
     local nc
 
     if [ $nc_major -lt $ncmin ]; then
-        die "The version of Nextcloud installed is $nc_major, which requires a version of php that the OS doesn't support. The OS only supports Nextcloud versions ${ncmin}-${ncmax}."
+        die "The version of Nextcloud installed is $nc_major, which requires a version of php that the OS doesn't support. This OS only supports Nextcloud versions ${nc_pretty_range}."
     fi
 
     if [ ! -z "$ncmax" ]; then
         if [ $nc_major -gt $ncmax ]; then
-            die "The version of Nextcloud installed is $nc_major, which requires a version of php that the OS doesn't support. The OS only supports Nextcloud versions ${ncmin}-${ncmax}."
+            die "The version of Nextcloud installed is $nc_major, which requires a version of php that the OS doesn't support. This OS only supports Nextcloud versions ${nc_pretty_range}."
         fi
     fi
 

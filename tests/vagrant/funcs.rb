@@ -5,6 +5,7 @@ def use_preloaded_box(obj, name, preloaded_dir=".")
     # box name needs to be unique on the system
     obj.vm.box = "preloaded-ciab-#{_name}"
     obj.vm.box_url = "file://" + Dir.pwd + "/#{preloaded_dir}/preloaded/preloaded-#{_name}.box"
+    obj.ssh.private_key_path = "#{preloaded_dir}/preloaded/keys/id_ed25519"
     if Vagrant.has_plugin?('vagrant-vbguest')
       # do not update additions when booting this machine
       obj.vbguest.auto_update = false

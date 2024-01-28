@@ -10,11 +10,19 @@ do
     fi
 done
 
+if [ ! -e "keys/id_ed25519" ]; then
+    mkdir -p keys
+    ssh-keygen -f keys/id_ed25519 -C "preloaded-key" -N "" -t ed25519
+fi
+
 
 vagrant box update
 
-for box in "preloaded-ubuntu-jammy64"
+for box in preloaded-ubuntu-jammy64 preloaded-ubuntu-noble64
 do
+    echo "-------------------------------------------------------------"
+    echo "STARTING: $box"
+    echo "-------------------------------------------------------------"
     vagrant up $box | tee /tmp/$box.out
     upcode=$?
     
@@ -61,12 +69,11 @@ do
     fi
 
     vagrant halt $box
-    vagrant package $box
     rm -f $box.box
-    mv package.box $box.box
+    vagrant package --output $box.box $box
 
     vagrant destroy -f $box
     cached_name="$(sed 's/preloaded-/preloaded-ciab-/' <<<"$box")"
-    vagrant box remove $cached_name
+    vagrant box remove --provider virtualbox $cached_name
 done
 

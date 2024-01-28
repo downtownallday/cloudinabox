@@ -1,5 +1,5 @@
 name: commit-tests
-on: [push, workflow_dispatch]
+on: [workflow_dispatch]
 jobs:
   # CiaB vanilla on jammy
   vanilla:

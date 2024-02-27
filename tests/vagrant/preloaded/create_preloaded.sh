@@ -20,6 +20,11 @@ vagrant box update
 
 for box in preloaded-ubuntu-jammy64 preloaded-ubuntu-noble64
 do
+
+    if [ ! -z "$1" -a "$box" != "$1" ]; then
+        echo "SKIPPING: $box"
+        continue
+    fi
     echo "-------------------------------------------------------------"
     echo "STARTING: $box"
     echo "-------------------------------------------------------------"

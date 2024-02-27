@@ -147,9 +147,9 @@ while len(input_lines) > 0:
 		name, val = (settings[i].name, settings[i].val)
 		flags = re.S | (re.I if case_insensitive_names else 0)
 		m = re.match(
-			   "(\s*)"
-			 + "(" + re.escape(comment_char) + "\s*)?"
-			 + re.escape(name) + delimiter_re + "(.*?)\s*$",
+			   "(\\s*)"
+			 + "(" + re.escape(comment_char) + "\\s*)?"
+			 + re.escape(name) + delimiter_re + "(.*?)\\s*$",
 			 line, flags)
 		if not m: continue
 		indent, is_comment, existing_val = m.groups()

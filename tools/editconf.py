@@ -33,7 +33,7 @@
 # lines while the lines start with whitespace, e.g.:
 #
 # NAME VAL
-#   UE 
+#   UE
 
 import sys, re
 
@@ -170,7 +170,7 @@ while len(input_lines) > 0:
 			buf += line
 			found.add(i)
 			break
-		
+
 		# comment-out the existing line (also comment any folded lines)
 		if is_comment is None:
 			if val or not erase_setting or erase_setting_via_comment:
@@ -178,23 +178,23 @@ while len(input_lines) > 0:
 		else:
 			# the line is already commented, pass it through
 			buf += line
-		
+
 		# if this option already is set don't add the setting again,
 		# or if we're clearing the setting with -e, don't add it
 		if (i in found) or (not val and erase_setting):
 			break
-		
+
 		# add the new setting
 		buf += indent + name + delimiter + val + "\n"
-		
+
 		# note that we've applied this option
 		found.add(i)
-		
+
 		break
 	else:
 		# If did not match any setting names, pass this line through.
 		buf += line
-		
+
 # Put any settings we didn't see at the end of the file,
 # except settings being cleared.
 if not ini_section or cur_section == ini_section.lower():

@@ -107,6 +107,7 @@ EOF
 
 
 run_miab_web_sh
+systemctl daemon-reload
 restart_service $php-fpm
 
 create_main_site "$PRIMARY_HOSTNAME"

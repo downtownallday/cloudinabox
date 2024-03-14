@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# upgrade the OS silently (does not work)
+# upgrade the OS without interaction
 # must be run by root
 
 echo ""
 echo "RELEASE UPGRADE UBUNTU - LTS"
-echo "Current: $(uname -a)"
+echo "Current: $(. /etc/os-release; echo $VERSION)"
 
 $(dirname "$0")/../../tools/editconf.py \
               /etc/update-manager/release-upgrades \
               -ini-section DEFAULT \
-              Prompt=lts \
+              Prompt=${1:-lts} \
               || exit 1
 
 apt-get update || exit 1
@@ -37,7 +37,7 @@ rm -f $tmp
 if [ $code -eq 0 ]; then
     echo ""
     echo "RELEASE UPGRADE SUCCEEDED!"
-    echo "Current: $(uname -a)"
+    echo "Current: $(. /etc/os-release; echo $VERSION)"
 
     # apparently there is a bug with virtual machine providers (VMWare
     # and Virtualbox) not providing necessary disk identification for

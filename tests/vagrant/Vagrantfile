@@ -6,20 +6,20 @@ Vagrant.configure("2") do |config|
   config.vm.network "public_network", bridge: "#$default_network_interface"
 
   #
-  # vanilla with ubuntu 20 (focal), then upgrade to ubuntu 22 (jammy)
+  # vanilla with ubuntu 22 (jammy), then upgrade to ubuntu 24 (noble)
   # requires plugin 'vagrant-reload'
   #
 
   if ENV['tests']=='all'
-    config.vm.define "vanilla-focal2jammy" do |m1|
+    config.vm.define "vanilla-jammy2noble" do |m1|
       if !Vagrant.has_plugin?('vagrant-reload')
         raise("Plugin 'vagrant-reload' is required")
       end
     
-      use_preloaded_box m1, "ubuntu/focal64"
+      use_preloaded_box m1, "ubuntu/jammy64"
       m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
-export PRIMARY_HOSTNAME=f2j1.abc.com
+export PRIMARY_HOSTNAME=j2n1.abc.com
 export SKIP_SYSTEM_UPDATE=0
 tests/system-setup/vanilla.sh -v || exit 1
 tests/runner.sh default || exit 2
@@ -52,12 +52,12 @@ SH
   
   
   #
-  # jammy
+  # noble
   # vanilla with encryption-at-rest
   #
   
   config.vm.define "vanilla-ehdd" do |m1|
-    use_preloaded_box m1, "ubuntu/jammy64"    
+    use_preloaded_box m1, "ubuntu/noble64"
     m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
 export PRIMARY_HOSTNAME=qa2.abc.com
@@ -73,7 +73,7 @@ SH
   #
 
   config.vm.define "from-backup" do |m1|
-    use_preloaded_box m1, "ubuntu/jammy64"
+    use_preloaded_box m1, "ubuntu/noble64"
     m1.vm.provision :shell, :inline => <<-SH
 cd /cloudinabox
 export PRIMARY_HOSTNAME=qacloud.int.com

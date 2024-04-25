@@ -17,6 +17,11 @@
 #    + jq
 #
 
+# MIAB uses ntpd and not systemd-timesyncd (a simple sntp-only
+# service). Ubuntu starting with Nobel includes timesyncd by default,
+# so remove it first or ntp will fail to install.
+hide_output apt-get remove -y systemd-timesyncd
+
 echo "# GENERATED FILE - DO NOT EDIT - GENERATED FROM setup/system-miab.sh" > setup/system-miab-mods.sh \
      || die "Could not create setup/system-miab-mods.sh"
 

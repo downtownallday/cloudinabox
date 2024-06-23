@@ -20,7 +20,7 @@ apt-get --with-new-pkgs upgrade -y || exit 1
 # silent install (DistUpgradeViewNonInteractive) does not work, need
 # input redirection...
 idx=0
-tmp="/tmp/nl.txt"
+tmp="$(mktemp)"
 while [ $idx -lt 40 ]; do
     echo "" >> $tmp
     let idx+=1
@@ -38,22 +38,6 @@ if [ $code -eq 0 ]; then
     echo ""
     echo "RELEASE UPGRADE SUCCEEDED!"
     echo "Current: $(. /etc/os-release; echo $VERSION)"
-
-    # apparently there is a bug with virtual machine providers (VMWare
-    # and Virtualbox) not providing necessary disk identification for
-    # ubuntu's multipath. don't understand it, but am adding this fix
-    # to eliminate the large amount of error message in syslog
-    #
-    # see:
-    #
-    # https://askubuntu.com/questions/1242731/ubuntu-20-04-multipath-configuration#
-    # https://ubuntu.com/server/docs/device-mapper-multipathing-introduction
-    #
-    cat >>/etc/multipath.conf <<EOF
-blacklist {
-    devnode "^(ram|raw|loop|fd|md|dm-|sr|scd|st|sda)[0-9]*"
-}
-EOF
     exit 0
 else
     echo "RELEASE UPGRADE FAILED WITH EXIT CODE $code"

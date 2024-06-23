@@ -30,7 +30,7 @@ echo "true" 1>&2
 
 # Deck app is installed and enabled
 echo "[Deck app is installed and enabled]" 1>&2
-isenabled=$(sudo -E -u www-data $php "$occ" app:list | python3 -c "import yaml,sys; print('true' if 'deck' in [ list(item)[0] for item in yaml.load(sys.stdin)['Enabled']] else 'false')")
+isenabled=$(sudo -E -u www-data $php "$occ" app:list | python3 -c "import yaml,sys; print('true' if 'deck' in [ list(item)[0] for item in yaml.load(sys.stdin, yaml.CLoader)['Enabled']] else 'false')")
 
 if [ $? -ne 0 ]; then
     echo "Could not list installed Nextcloud apps!"

@@ -41,12 +41,8 @@ config_server() {
     # use 70% for Innodb buffer pool size
     let avail="$avail * 7 / 10 / 1024"
 
-    # Set default innodb_file_format to Barracuda to support utf8mb4
-    # TODO: remove innodb_file_format and innodb_large_prefix - they are ignored by mariadb 10.6+
     cat > /etc/mysql/mariadb.conf.d/51-server.cnf <<EOF
 [mysqld]
-innodb_file_format=Barracuda
-innodb_large_prefix=true
 innodb_file_per_table=1
 binlog_format=ROW
 transaction_isolation=READ-COMMITTED

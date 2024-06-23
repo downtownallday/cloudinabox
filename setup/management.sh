@@ -7,8 +7,18 @@ phpver="$REQUIRED_PHP_VERSION"
 
 # install packages
 
-apt_install duplicity certbot \
-    || die "Unable to install packages"
+# always prefer dpkg duplicty, but install snap if unavailable
+if snap list duplicity >/dev/null 2>&1; then
+    snap remove duplicity >/dev/null 2>&1 || die "Could not remove duplicity"
+    [ -L /usr/bin/duplicity ] && rm -f /usr/bin/duplicity
+fi
+errmsg=$(apt_install duplicity)
+if [ $? -ne 0 ]; then
+    snap install duplicity --classic || die "$errmsg"
+    ln -s /snap/bin/duplicity /usr/bin/duplicity
+fi
+
+apt_install certbot || die "Unable to install certbot"
 
 
 # Create a backup directory and a random key for encrypting backups.

@@ -1,0 +1,223 @@
+#!/bin/bash
+
+# This is a helper script to make it easier to interact with lxd by
+# calling lxc with arguments derived from conventions we've developed
+# in this project.
+#
+# Those conventions are:
+#
+#   1. the project name is derived from the working directory. You
+#   must be anywhere in the source tree. "ciab" for cloudinabox and
+#   "miab" for mailinabox
+#
+#   2. the instance name is derived from the base name of the current
+#   working directory. this means that each instance must have it's
+#   own directory and have a script within it called "provision.sh"
+#   that creates the instance.
+#
+# Run the script with no arguments to see a list of commands.
+#
+
+D=$(dirname "$BASH_SOURCE")
+. "$D/lx_functions.sh" || exit 1
+
+mylx_guess() {
+    if [ $# -eq 2 ]; then
+        LX_PROJECT="$1"
+        LX_INST="$2"
+    elif [ $# -eq 1 ]; then
+        LX_PROJECT="$(lx_guess_project_name)"
+        LX_INST="$1"
+    elif [ $# -eq 0 ]; then
+        LX_PROJECT="$(lx_guess_project_name)"
+        LX_INST="$(basename "$PWD")"
+    else
+        echo "Invalid number of arguments"
+        return 1
+    fi
+}
+
+
+mylx_exec_usage() {
+    echo "Usage: mylx exec <project> <inst> [<cwd>] -- cmd ..."
+    echo "   or: mylx exec <inst> [<cwd>] -- cmd ..."
+    echo "   or: mylx exec <cwd> -- cmd ..."
+    echo "   or: mylx exec cmd ..."
+}
+
+mylx_exec() {
+    # args
+    #  format 1: project inst [cwd] -- cmd ...
+    #  format 2: inst [cwd] -- cmd ...
+    #  format 3: <cwd> -- cmd ...
+    #  format 4: cmd ...
+    if [ $# -eq 0 ]; then
+        mylx_exec_usage
+        return 1
+    fi
+    
+    local args=( "$@" )
+    local idx=0
+    while [ $idx -le 3 -a $idx -lt ${#args[*]} ]; do
+        [ "${args[$idx]}" = "--" ] && break
+        let idx+=1
+    done
+    
+    local wd=""
+    if [ "${args[$idx]}" = "--" ]; then
+        if [ $idx -eq 3 ]; then
+            # format 1 with cwd
+            echo "f1"
+            wd="$3"
+            mylx_guess "$1" "$2" || return 1
+            shift; shift; shift; shift;
+        elif [ $idx -eq 2 ]; then
+            # format 1 w/o cwd or 2
+            if [ "${2#/}" != "$2" ]; then
+                # wd starts with /, so it's a path
+                # format 2
+                echo "f2"
+                wd="$2"
+                mylx_guess "" "$1" || return 1
+            else
+                # format 1 w/o cwd
+                echo "f1 w/o cwd"
+                mylx_guess "$1" "$2" || return 1
+            fi
+            shift; shift; shift;
+        elif [ $idx -eq 1 ]; then
+            # format 2 w/o cwd or 3
+            if [ "${1#/}" != "$1" ]; then
+                # wd starts with /, so it's a path
+                # format 3
+                echo "f3"
+                wd="$1"
+                mylx_guess || return 1
+            else
+                # format 2 w/o cwd
+                echo "f2 w/o cwd"
+                mylx_guess "$1" || return 1
+            fi
+            shift; shift;
+        elif [ $idx -eq 0 ]; then
+             # command line "-- cmd ...", just ignore the leading --
+             shift;
+        fi
+    else
+        # format 4
+        echo "f4"
+        mylx_guess || return 1
+    fi
+
+    local xargs=""
+    if [ ! -z "$wd" ]; then
+        xargs="--cwd $wd"
+    fi
+    echo lxc --project "$LX_PROJECT" exec "$LX_INST" $xargs -- "$@"
+    lxc --project "$LX_PROJECT" exec "$LX_INST" $xargs -- "$@"
+}
+
+mylx_shell() {
+    mylx_guess "$@" || return 1
+    echo lxc --project "$LX_PROJECT" exec "$LX_INST" -- bash
+    lxc --project "$LX_PROJECT" exec "$LX_INST" -- bash
+}
+
+mylx_hostname() {
+    mylx_guess "$@" || return 1
+    local host
+    lxc --project "$LX_PROJECT" exec "$LX_INST" -- /usr/bin/hostname --fqdn || return 1
+}
+
+mylx_ssh() {
+    local host="$1"
+    if [ -z "$host" ]; then
+        host="$(mylx_hostname)"
+        if [ $? -ne 0 ]; then
+            echo "Could not determine hostname, please specify"
+            host=""
+        fi
+        if [ -z "$host" ]; then
+            echo "usage: mylx ssh <vm-hostname>"
+            return 1
+        fi
+    fi
+    local id="$(lx_get_ssh_identity)"
+    local known_hosts="$(lx_get_ssh_known_hosts)"
+    local vmuser="vmuser"
+    #echo ssh -i "$id" -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=no "$vmuser@$host"
+    echo "Connecting to $vmuser@$host ..."
+    ssh -i "$id" -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=no "$vmuser@$host"
+}
+
+mylx_list() {
+    mylx_guess "$1" || return 1
+    echo lxc --project "$LX_PROJECT" list
+    lxc --project "$LX_PROJECT" list
+}
+
+mylx_start() {
+    mylx_guess "$@" || return 1
+    echo lxc --project "$LX_PROJECT" start "$LX_INST"
+    lxc --project "$LX_PROJECT" start "$LX_INST"
+}
+
+mylx_stop() {
+    mylx_guess "$@" || return 1
+    echo lxc --project "$LX_PROJECT" stop "$LX_INST"
+    lxc --project "$LX_PROJECT" stop "$LX_INST"
+}
+
+mylx_delete() {
+    mylx_guess "$@" || return 1
+    echo lxc --project "$LX_PROJECT" delete --force --interactive "$LX_INST"
+    lxc --project "$LX_PROJECT" delete --force --interactive "$LX_INST"
+}
+
+mylx_destroy() {
+    mylx_delete "$@"
+}
+
+mylx_status() {
+    if [ $# -eq 0 ]; then
+        mylx_guess || return 1
+        "$D/lx_status.sh" "$LX_PROJECT"
+    elif [ "$1" = "-g" ]; then
+        "$D/lx_status.sh"
+    else
+        "$D/lx_status.sh" "$@"
+    fi
+}
+
+
+usage() {
+    echo "Usage:"
+    echo "mylx <command> [<arg> ...]"
+    echo "commands:"
+    echo "     exec <working-directoy> -- command [arg ...]"
+    echo "     exec command [arg ...]"
+    echo "     shell"
+    echo "     ssh"
+    echo "     hostname"
+    echo "     list"
+    echo "     start"
+    echo "     stop"
+    echo "     delete|destroy"
+    echo "     status"
+}
+
+if [ $# -eq 0 ]; then
+    usage
+    exit 1
+fi
+
+cmd="$1"
+handler="mylx_$1"
+shift
+if [ ! "$(type -t $handler)" = "function" ]; then
+    echo "Unknown command: $cmd"
+    exit 1
+fi
+
+$handler "$@"
+

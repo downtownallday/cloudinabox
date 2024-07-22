@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# this script create a new lxd image preloaded with software to speed
+# this script creates a new lxd image preloaded with software to speed
 # up installation.
 #
 # prerequisites:

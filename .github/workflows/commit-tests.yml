@@ -1,9 +1,9 @@
 name: commit-tests
-on: [workflow_dispatch]
+on: [push, workflow_dispatch]
 jobs:
-  # CiaB vanilla on jammy
+  # CiaB vanilla on noble
   vanilla:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       DOWNLOAD_NEXTCLOUD_FROM_GITHUB: true
       PRIMARY_HOSTNAME: box1.abc.com

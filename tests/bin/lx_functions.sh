@@ -128,12 +128,53 @@ lx_launch_vm_and_wait() {
     lx_wait_for_boot "$project" "$inst" || return 1
 }
 
+
+lx_output_inst_list() {
+#  Pre-defined column shorthand chars:
+#    4 - IPv4 address
+#    6 - IPv6 address
+#    a - Architecture
+#    b - Storage pool
+#    c - Creation date
+#    d - Description
+#    D - disk usage
+#    e - Project name
+#    l - Last used date
+#    m - Memory usage
+#    M - Memory usage (%)
+#    n - Name
+#    N - Number of Processes
+#    p - PID of the instance's init process
+#    P - Profiles
+#    s - State
+#    S - Number of snapshots
+#    t - Type (persistent or ephemeral)
+#    u - CPU usage (in seconds)
+#    L - Location of the instance (e.g. its cluster member)
+#    f - Base Image Fingerprint (short)
+#    F - Base Image Fingerprint (long)
+    local project="$1"
+    local columns="${2:-ns46tSL}"
+    local format="${3:-table}"  # csv|json|table|yaml|compact
+    lxc --project "$project" list -c "$columns" -f "$format"
+}
         
 lx_output_image_list() {
+#      Column shorthand chars:
+#      l - Shortest image alias (and optionally number of other aliases)
+#      L - Newline-separated list of all image aliases
+#      f - Fingerprint (short)
+#      F - Fingerprint (long)
+#      p - Whether image is public
+#      d - Description
+#      a - Architecture
+#      s - Size
+#      u - Upload date
+#      t - Type
     local project="$1"
-    echo "Image list ($project)"
-    echo "-----------------------------------------------------------"
-    lxc --project "$project" image list
+    local columns="${2:-lfpdatsu}"
+    local format="${3:-table}"  # csv|json|table|yaml|compact
+    lxc --project "$project" image list -c "$columns" -f "$format"
 }
 
 lx_wait_for_boot() {

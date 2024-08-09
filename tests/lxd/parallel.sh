@@ -17,12 +17,17 @@ project="$(lx_guess_project_name)"
 if [ "$1" = "-d" ]; then
     shift
     [ $# -gt 0 ] && boxes=( $* )
-    for inst in $(lxc --project "$project" list -c n -f csv); do
+    for inst in $(lx_output_inst_list "$project" "n" "csv"); do
         if array_contains $inst ${boxes[*]}; then
             echo lxc --project "$project" delete $inst --force
             lxc --project "$project" delete $inst --force
         fi
     done
+    exit 0
+elif [ "$1" = "-h" -o "$1" = "--help" ]; then
+    echo "usage: $0 [-d] [inst-name ...]"
+    echo "  -d    delete/destroy running boxes"
+    echo "  inst-name   an instance directory (instance name). defaults to: ${boxes[*]}"
     exit 0
 fi
 

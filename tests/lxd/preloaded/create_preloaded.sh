@@ -64,9 +64,15 @@ users:
     lxc --project "$project" publish "$inst_name" "local:" --reuse --compression gzip --alias "$new_image" || exit 1  # --compression xz
     
     echo ""
-    lx_output_image_list "$project"
-    
+    echo "================================================="
+    echo "Image list ($project)"
+    echo "================================================="
+    lx_output_image_list "$project" "ld"
+
+    echo ""
+    echo "================================================="
     echo "Delete instance '$inst_name'"
+    echo "================================================="
     lx_delete "$project" "$inst_name" "no-interactive"
 
     echo "Success"

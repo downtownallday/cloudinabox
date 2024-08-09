@@ -19,6 +19,8 @@ jobs:
           sudo rm -rf /var/lib/mysql
           sudo rm -f /root/.my.cnf
           rm -f .my.cnf
+      - name: fix sshd "Missing privilege separation directory"
+        run: sudo -E mkdir -p /run/sshd
       - name: setup
         run: sudo -E tests/system-setup/vanilla.sh -v
       - name: test-runner

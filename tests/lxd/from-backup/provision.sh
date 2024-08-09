@@ -8,13 +8,11 @@ D=$(dirname "$BASH_SOURCE")
 provision_start "preloaded-ubuntu-noble" "/cloudinabox" || exit 1
 
 # Setup system
-lxc --project "$project" exec "$inst" \
-    --cwd /cloudinabox \
-    --env PRIMARY_HOSTNAME="qacloud.int.com" \
-    -- \
-    /bin/bash -c "
-tests/system-setup/from-backup.sh backup3 &&
-tests/runner.sh default upgrade-backup3
+provision_shell <<<"
+cd /cloudinabox
+export PRIMARY_HOSTNAME='qacloud.int.com'
+tests/system-setup/from-backup.sh backup3 || exit 1
+tests/runner.sh default upgrade-backup3 || exit 2
 "
 
 provision_done $?

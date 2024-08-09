@@ -8,15 +8,13 @@ D=$(dirname "$BASH_SOURCE")
 provision_start "preloaded-ubuntu-noble" "/cloudinabox" || exit 1
 
 # Setup system
-lxc --project "$project" exec "$inst" \
-    --cwd /cloudinabox \
-    --env PRIMARY_HOSTNAME="${inst}-ciab.local" \
-    --env EHDD_KEYFILE="/root/keyfile" \
-    -- \
-    /bin/bash -c "
-echo -n 'boo' > \$EHDD_KEYFILE &&
-tests/system-setup/vanilla.sh -v &&
-tests/runner.sh default
+provision_shell <<<"
+cd /cloudinabox
+export PRIMARY_HOSTNAME='${inst}-ciab.local'
+export EHDD_KEYFILE='/root/keyfile'
+echo -n 'boo' > \$EHDD_KEYFILE
+tests/system-setup/vanilla.sh -v || exit 1
+tests/runner.sh default || exit 2
 "
 
 provision_done $?

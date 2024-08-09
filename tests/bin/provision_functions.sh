@@ -21,6 +21,25 @@ provision_start() {
         || return 1
 }
 
+provision_shell() {
+    # provision_start must have been called first!
+    local remote_path="/tmp/provision.sh"
+    local lxc_flags="--uid 0 --gid 0 --mode 755 --create-dirs"
+    if [ ! -z "$1" ]; then
+        lxc --project "$project" file push "$1" "${inst}${remote_path}" $lxc_flags || return 1
+        
+    else
+        local tmp=$(mktemp)
+        echo "#!/bin/sh" >"$tmp"
+        cat >>"$tmp"
+        lxc --project "$project" file push "$tmp" "${inst}${remote_path}" $lxc_flags || return 1
+        rm -f "$tmp"
+    fi
+
+    lxc --project "$project" exec "$inst" --cwd / --env PROVISION=true \
+        -- "$remote_path"
+}
+
 
 provision_done() {
     local rc="$1"

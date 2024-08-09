@@ -14,6 +14,13 @@
 # The host bridge only works with an ethernet interface. Wifi does not
 # work, so you must be plugged in to run the vm tests.
 #
+# Docker cannot be installed alongside as LXD due to conflicts with
+# Docker's iptables entries. More on this issue can be found here:
+#
+#     https://github.com/docker/for-linux/issues/103
+#
+#     https://documentation.ubuntu.com/lxd/en/latest/howto/network_bridge_firewalld/#prevent-connectivity-issues-with-lxd-and-docker
+#
 # Removal:
 #
 # Run the script with a single "-d" argument to back out the changes.

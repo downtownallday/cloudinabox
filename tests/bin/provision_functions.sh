@@ -8,18 +8,28 @@
 provision_start() {
     local base_image="$1"
     local guest_mount_path="$2"
+    shift; shift
+    local opts=( "$@" )
+
+    if [ ${#opts[@]} -eq 0 ]; then
+        opts=(
+            "-c" "limits.cpu=1"
+            "-c" "limits.memory=2GiB"
+        )
+    fi
 
     # set these globals
     project="$(lx_guess_project_name)"
     inst="$(basename "$PWD")"
     provision_start_s="$(date +%s)"
     
-    echo "Creating instance '$inst' from image $base_image"
+    echo "Creating instance '$inst' from image $base_image (${opts[@]})"
     lx_launch_vm_and_wait \
         "$project" "$inst" "$base_image" "$guest_mount_path" \
-        -c limits.cpu=2 -c limits.memory=1GiB \
+        "${opts[@]}" \
         || return 1
 }
+
 
 provision_shell() {
     # provision_start must have been called first!
@@ -42,7 +52,7 @@ provision_shell() {
 
 
 provision_done() {
-    local rc="$1"
+    local rc="${1:-0}"
     echo "Elapsed: $(elapsed_pretty "$provision_start_s" "$(date +%s)")"
     if [ $rc -ne 0 ]; then
         echo "Failed with code $rc"

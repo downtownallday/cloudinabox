@@ -21,7 +21,7 @@
 D=$(dirname "$BASH_SOURCE")
 . "$D/lx_functions.sh" || exit 1
 
-mylx_guess() {
+vlx_guess() {
     if [ $# -eq 2 ]; then
         LX_PROJECT="$1"
         LX_INST="$2"
@@ -38,21 +38,21 @@ mylx_guess() {
 }
 
 
-mylx_exec_usage() {
-    echo "Usage: mylx exec <project> <inst> [<cwd>] -- cmd ..."
-    echo "   or: mylx exec <inst> [<cwd>] -- cmd ..."
-    echo "   or: mylx exec <cwd> -- cmd ..."
-    echo "   or: mylx exec cmd ..."
+vlx_exec_usage() {
+    echo "Usage: vlx exec <project> <inst> [<cwd>] -- cmd ..."
+    echo "   or: vlx exec <inst> [<cwd>] -- cmd ..."
+    echo "   or: vlx exec <cwd> -- cmd ..."
+    echo "   or: vlx exec cmd ..."
 }
 
-mylx_exec() {
+vlx_exec() {
     # args
     #  format 1: project inst [cwd] -- cmd ...
     #  format 2: inst [cwd] -- cmd ...
     #  format 3: <cwd> -- cmd ...
     #  format 4: cmd ...
     if [ $# -eq 0 ]; then
-        mylx_exec_usage
+        vlx_exec_usage
         return 1
     fi
     
@@ -69,7 +69,7 @@ mylx_exec() {
             # format 1 with cwd
             echo "f1"
             wd="$3"
-            mylx_guess "$1" "$2" || return 1
+            vlx_guess "$1" "$2" || return 1
             shift; shift; shift; shift;
         elif [ $idx -eq 2 ]; then
             # format 1 w/o cwd or 2
@@ -78,11 +78,11 @@ mylx_exec() {
                 # format 2
                 echo "f2"
                 wd="$2"
-                mylx_guess "" "$1" || return 1
+                vlx_guess "" "$1" || return 1
             else
                 # format 1 w/o cwd
                 echo "f1 w/o cwd"
-                mylx_guess "$1" "$2" || return 1
+                vlx_guess "$1" "$2" || return 1
             fi
             shift; shift; shift;
         elif [ $idx -eq 1 ]; then
@@ -92,11 +92,11 @@ mylx_exec() {
                 # format 3
                 echo "f3"
                 wd="$1"
-                mylx_guess || return 1
+                vlx_guess || return 1
             else
                 # format 2 w/o cwd
                 echo "f2 w/o cwd"
-                mylx_guess "$1" || return 1
+                vlx_guess "$1" || return 1
             fi
             shift; shift;
         elif [ $idx -eq 0 ]; then
@@ -106,7 +106,7 @@ mylx_exec() {
     else
         # format 4
         echo "f4"
-        mylx_guess || return 1
+        vlx_guess || return 1
     fi
 
     local xargs=""
@@ -117,22 +117,22 @@ mylx_exec() {
     lxc --project "$LX_PROJECT" exec "$LX_INST" $xargs -- "$@"
 }
 
-mylx_shell() {
-    mylx_guess "$@" || return 1
+vlx_shell() {
+    vlx_guess "$@" || return 1
     echo lxc --project "$LX_PROJECT" exec "$LX_INST" -- bash
     lxc --project "$LX_PROJECT" exec "$LX_INST" -- bash
 }
 
-mylx_hostname() {
-    mylx_guess "$@" || return 1
+vlx_hostname() {
+    vlx_guess "$@" || return 1
     local host
     lxc --project "$LX_PROJECT" exec "$LX_INST" -- /usr/bin/hostname --fqdn || return 1
 }
 
-mylx_ssh() {
+vlx_ssh() {
     local host="$1"
     if [ -z "$host" ]; then
-        host="$(mylx_hostname)"
+        host="$(vlx_hostname)"
         if [ $? -ne 0 ]; then
             echo "Could not determine hostname, please specify"
             host=""
@@ -150,19 +150,19 @@ mylx_ssh() {
     ssh -i "$id" -o UserKnownHostsFile="$known_hosts" -o StrictHostKeyChecking=no "$vmuser@$host"
 }
 
-mylx_list() {
-    mylx_guess "$1" || return 1
+vlx_list() {
+    vlx_guess "$1" || return 1
     echo lxc --project "$LX_PROJECT" list
     lxc --project "$LX_PROJECT" list
 }
 
-mylx_images() {
-    mylx_guess "$1" || return 1
+vlx_images() {
+    vlx_guess "$1" || return 1
     echo lxc --project "$LX_PROJECT" image list
     lxc --project "$LX_PROJECT" image list
 }
 
-mylx_up() {
+vlx_up() {
     if [ -x "./provision.sh" ] ; then
         echo "Provision"
         ./provision.sh "$@" || return 1
@@ -173,31 +173,31 @@ mylx_up() {
 }
     
 
-mylx_start() {
-    mylx_guess "$@" || return 1
+vlx_start() {
+    vlx_guess "$@" || return 1
     echo lxc --project "$LX_PROJECT" start "$LX_INST"
     lxc --project "$LX_PROJECT" start "$LX_INST"
 }
 
-mylx_stop() {
-    mylx_guess "$@" || return 1
+vlx_stop() {
+    vlx_guess "$@" || return 1
     echo lxc --project "$LX_PROJECT" stop "$LX_INST"
     lxc --project "$LX_PROJECT" stop "$LX_INST"
 }
 
-mylx_delete() {
-    mylx_guess "$@" || return 1
+vlx_delete() {
+    vlx_guess "$@" || return 1
     echo lxc --project "$LX_PROJECT" delete --force --interactive "$LX_INST"
     lxc --project "$LX_PROJECT" delete --force --interactive "$LX_INST"
 }
 
-mylx_destroy() {
-    mylx_delete "$@"
+vlx_destroy() {
+    vlx_delete "$@"
 }
 
-mylx_status() {
+vlx_status() {
     if [ $# -eq 0 ]; then
-        mylx_guess || return 1
+        vlx_guess || return 1
         "$D/lx_status.sh" "$LX_PROJECT"
     elif [ "$1" = "-g" ]; then
         "$D/lx_status.sh"
@@ -231,7 +231,7 @@ if [ $# -eq 0 ]; then
 fi
 
 cmd="$1"
-handler="mylx_$1"
+handler="vlx_$1"
 shift
 if [ ! "$(type -t $handler)" = "function" ]; then
     echo "Unknown command: $cmd"

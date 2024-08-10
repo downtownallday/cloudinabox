@@ -138,7 +138,7 @@ vlx_ssh() {
             host=""
         fi
         if [ -z "$host" ]; then
-            echo "usage: mylx ssh <vm-hostname>"
+            echo "usage: vlx ssh <vm-hostname>"
             return 1
         fi
     fi
@@ -209,7 +209,7 @@ vlx_status() {
 
 usage() {
     echo "Usage:"
-    echo "mylx <command> [<arg> ...]"
+    echo "vlx <command> [<arg> ...]"
     echo "commands:"
     echo "     exec <working-directoy> -- command [arg ...]"
     echo "     exec command [arg ...]"

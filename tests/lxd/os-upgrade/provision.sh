@@ -1,6 +1,7 @@
 #!/bin/bash
 
 D=$(dirname "$BASH_SOURCE")
+. "$D/../../lib/color-output.sh" || exit 1
 . "$D/../../bin/lx_functions.sh" || exit 1
 . "$D/../../bin/provision_functions.sh" || exit 1
 
@@ -20,6 +21,7 @@ tests/runner.sh default
 
 # a reboot may be required when updates were applied
 if lxc --project "$project" exec "$inst" -- /bin/bash -c "[ -e /var/run/reboot-required ]"; then
+    warn "A reboot is required - rebooting now"
     lxc --project "$project" restart "$inst" || exit 1
     lx_wait_for_boot "$project" "$inst" || exit 1
 fi
@@ -33,6 +35,7 @@ lxc --project "$project" exec "$inst" \
 
 
 # a reboot is required after any system upgrade
+warn "A reboot is required after any system upgrade - rebooting now"
 lxc --project "$project" restart "$inst" || exit 2
 lx_wait_for_boot "$project" "$inst" || exit 2
 

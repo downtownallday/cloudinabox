@@ -5,7 +5,7 @@ D=$(dirname "$BASH_SOURCE")
 . "$D/../../bin/provision_functions.sh" || exit 1
 
 # Create the instance (started)
-provision_start "preloaded-ubuntu-noble" "/cloudinabox" || exit 1
+provision_start "" "/cloudinabox" || exit 1
 
 # Setup system
 provision_shell <<<"

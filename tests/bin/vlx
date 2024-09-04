@@ -1,4 +1,13 @@
 #!/bin/bash
+#####
+##### This file is part of Mail-in-a-Box-LDAP which is released under the
+##### terms of the GNU Affero General Public License as published by the
+##### Free Software Foundation, either version 3 of the License, or (at
+##### your option) any later version. See file LICENSE or go to
+##### https://github.com/downtownallday/mailinabox-ldap for full license
+##### details.
+#####
+
 
 # This is a helper script to make it easier to interact with lxd by
 # calling lxc with arguments derived from conventions we've developed
@@ -16,6 +25,13 @@
 #   that creates the instance.
 #
 # Run the script with no arguments to see a list of commands.
+#
+# It's helpful to create a command alias. eg. in bash:
+#
+#   alias vlx="/path/to/tests/bin/vlx"
+#
+# Add it to your ~/bash_aliases file to make it available for new
+# terminal windows.
 #
 
 D=$(dirname "$BASH_SOURCE")

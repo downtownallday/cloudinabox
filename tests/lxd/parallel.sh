@@ -1,4 +1,13 @@
 #!/bin/bash
+#####
+##### This file is part of Mail-in-a-Box-LDAP which is released under the
+##### terms of the GNU Affero General Public License as published by the
+##### Free Software Foundation, either version 3 of the License, or (at
+##### your option) any later version. See file LICENSE or go to
+##### https://github.com/downtownallday/mailinabox-ldap for full license
+##### details.
+#####
+
 
 #
 # Parallel provisioning for test vms
@@ -8,15 +17,32 @@
 . "$(dirname "$0")/../lib/color-output.sh"
 . "$(dirname "$0")/../lib/misc.sh"
 
-boxes=( vanilla-ehdd from-backup )
-boxes_override="no"
-
+boxlist=""    # the name of the boxlist or a path to the boxlist file
+boxes=()      # the contents of the boxlist file
 project="$(lx_guess_project_name)"
+
+load_boxlist() {
+    # sets global variable 'boxlist' and array 'boxes'
+    boxlist="${1:-default}"
+    local fn="$boxlist"
+    if [ ! -f "$fn" ]; then
+        fn="parallel-boxlist.$boxlist"
+    fi
+    if [ ! -f "$fn" ]; then
+        echo "Could not load boxlist from '${boxlist}'! Failed to find '$fn'."
+        exit 1
+    fi
+    boxes=( $(grep -v '^#' $fn) )
+    if [ $? -ne 0 ]; then
+        echo "Could not load boxlist from file '$fn'!"
+        exit 1
+    fi
+}
 
 # destroy running boxes
 if [ "$1" = "-d" ]; then
     shift
-    [ $# -gt 0 ] && boxes=( $* )
+    load_boxlist "$1"
     for inst in $(lx_output_inst_list "$project" "n" "csv"); do
         if array_contains $inst ${boxes[*]}; then
             echo lxc --project "$project" delete $inst --force
@@ -25,16 +51,13 @@ if [ "$1" = "-d" ]; then
     done
     exit 0
 elif [ "$1" = "-h" -o "$1" = "--help" ]; then
-    echo "usage: $0 [-d] [inst-name ...]"
+    echo "usage: $0 [-d] [boxlist]"
     echo "  -d    delete/destroy running boxes"
-    echo "  inst-name   an instance directory (instance name). defaults to: ${boxes[*]}"
+    echo "  boxlist   an file or named boxlist containing a list of instance names. defaults to 'default'"
     exit 0
 fi
 
-if [ $# -gt 0 ]; then
-    boxes=( $* )
-    boxes_override="yes"
-fi
+load_boxlist "$1"
 
 # set total parallel vms to (#cores minus 1)
 MAX_PROCS=$(cat /proc/cpuinfo | grep processor | wc -l)
@@ -49,7 +72,7 @@ echo "MAX_PROCS=$MAX_PROCS"
 echo "OUTPUT_DIR=$OUTPUT_DIR"
 
 start_time="$(date +%s)"
- 
+
 # bring up in parallel
 for inst in ${boxes[*]}; do
     outfile="$OUTPUT_DIR/$inst.out.txt"
@@ -58,9 +81,9 @@ for inst in ${boxes[*]}; do
     echo $inst
 done | xargs -P $MAX_PROCS -I"INSTNAME" \
              sh -c '
-cd "INSTNAME" && 
-./provision.sh >'"../$OUTPUT_DIR/"'INSTNAME.out.txt 2>&1 && 
-echo "EXITCODE: 0" >> '"../$OUTPUT_DIR/"'INSTNAME.out.txt || 
+cd "INSTNAME" &&
+./provision.sh >'"../$OUTPUT_DIR/"'INSTNAME.out.txt 2>&1 &&
+echo "EXITCODE: 0" >> '"../$OUTPUT_DIR/"'INSTNAME.out.txt ||
 echo "EXITCODE: $?" >>'"../$OUTPUT_DIR/"'INSTNAME.out.txt
 '
 
@@ -92,9 +115,5 @@ echo "Elapsed time: $(elapsed_pretty $start_time $end_time)"
 # exit
 echo ""
 echo "Guest VMs are running! Destroy them with:"
-if [ "$boxes_override" = "no" ]; then
-    echo "   $0 -d"
-else
-    echo "   $0 -d ${boxes[*]}"
-fi
+echo "   $0 -d $boxlist"
 exit $rc

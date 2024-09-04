@@ -11,7 +11,7 @@
 
 2. set your working directory to the vm directory you'd like to start (eg. `cd "tests/lxd/vanilla"`), then run `vlx up`
 
-3. to access the vm: `vlx shell` or `vlx ssh`. all vm's have the ciab root mounted at /cloudinabox, so you can change files locally and they'll be available on the vm for testing
+3. to access the vm: `vlx shell` or `vlx ssh`. all vm's have the source root mounted at /cloudinabox or /mailinabox, so you can change files locally and they'll be available on the vm for testing
 
 4. to destroy/delete the vm: `vlx destroy`
 

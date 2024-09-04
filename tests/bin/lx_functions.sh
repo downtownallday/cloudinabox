@@ -1,4 +1,13 @@
 #!/bin/bash
+#####
+##### This file is part of Mail-in-a-Box-LDAP which is released under the
+##### terms of the GNU Affero General Public License as published by the
+##### Free Software Foundation, either version 3 of the License, or (at
+##### your option) any later version. See file LICENSE or go to
+##### https://github.com/downtownallday/mailinabox-ldap for full license
+##### details.
+#####
+
 
 # source this file
 
@@ -87,15 +96,18 @@ lx_init_vm() {
     local mount_guest="$5" # mountpoint in guest
     shift; shift; shift; shift; shift;
 
-    # 1. this assumes that a bridge profile has been created called "bridgenet"
-    # 2. this assumes that storage named the same as project exists,
+    # a storage named the same as project must exist
     #    e.g. "lxc storage create $project dir" was executed prior.
 
-    echo "Using network 'bridgenet'"
-    lxc --project "$project" profile show bridgenet | sed 's/^/    /' || return 1
-    
-    lxc --project "$project" init "$image" "$inst_name" --vm --storage "$project" -p default -p bridgenet "$@" || return 1
-    
+    case "${@}" in
+        *bridgenet* )
+            echo "Using network 'bridgenet'"
+            lxc --project "$project" profile show bridgenet | sed 's/^/    /' || return 1
+            ;;
+    esac
+
+    lxc --project "$project" init "$image" "$inst_name" --vm --storage "$project" "$@" || return 1
+
     if [ ! -z "$mount_host" -a ! -z "$mount_guest" ]; then
         echo "adding $mount_guest on $inst_name to refer to $mount_host on host as device '${project}root'"
         if [ $EUID -ne 0 ]; then
@@ -118,10 +130,10 @@ lx_launch_vm_and_wait() {
     local base_image="$3"
     local mount_project_root_to="$4"
     shift; shift; shift; shift;
-    
+
     # Delete existing instance, if it exists
     lx_delete "$project" "$inst" interactive || return 1
-    
+
     # Create the instance (started)
     lx_launch_vm "$project" "$inst" "$base_image" "$(lx_project_root_dir)" "$mount_project_root_to" "$@" || return 1
 
@@ -158,7 +170,7 @@ lx_output_inst_list() {
     local format="${3:-table}"  # csv|json|table|yaml|compact
     lxc --project "$project" list -c "$columns" -f "$format"
 }
-        
+
 lx_output_image_list() {
 #      Column shorthand chars:
 #      l - Shortest image alias (and optionally number of other aliases)
@@ -219,4 +231,3 @@ lx_create_ssh_identity() {
         ssh-keygen -f "$id" -C "vm key" -N "" -t ed25519
     fi
 }
-

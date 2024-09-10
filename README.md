@@ -80,7 +80,7 @@ Ubuntu upgrades are essential to keep up with security fixes. Carefully follow t
 
 - If you're currently on *Ubuntu 20 (Focal)*: Upgrade Nextcloud to version 25, then upgrade Ubuntu to Jammy, then checkout the latest Cloud-in-a-Box and run setup, then follow the steps for Jammy below.
 
-- If you're currently on *Ubuntu 22 (Jammy)*: Upgrade Nextcloud to version 28, then upgrade Ubuntu to Noble, then run setup.
+- If you're currently on *Ubuntu 22 (Jammy)*: Upgrade Nextcloud to version 30, then upgrade Ubuntu to Noble, then run setup.
 
 Ubuntu upgrades may be done in-place using the system's OS upgrade program /usr/bin/do-release-upgrade, or from backup files (restored into /home/user-data) on a fresh system.
 

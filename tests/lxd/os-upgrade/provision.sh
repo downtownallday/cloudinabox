@@ -26,13 +26,14 @@ if lxc --project "$project" exec "$inst" -- /bin/bash -c "[ -e /var/run/reboot-r
     lx_wait_for_boot "$project" "$inst" || exit 1
 fi
 
-# upgrade ubuntu
-lxc --project "$project" exec "$inst" \
-    --cwd /cloudinabox \
-    -- \
-    "tests/bin/do_release_upgrade.sh" \
-    || exit 2
+# upgrade ubuntu - using lxc exec
+# Fails with:
+#     lxd "Error: websocket: close 1006 (abnormal closure): unexpected EOF"
+# lxc --project "$project" exec "$inst" --cwd /cloudinabox -- \
+#     "tests/bin/do_release_upgrade.sh" || exit 2
 
+# upgrade ubuntu - using ssh
+"$D/../../bin/vlx" ssh -- "cd /cloudinabox; sudo tests/bin/do_release_upgrade.sh"  || exit 2
 
 # a reboot is required after any system upgrade
 warn "A reboot is required after any system upgrade - rebooting now"
@@ -40,6 +41,7 @@ lxc --project "$project" restart "$inst" || exit 2
 lx_wait_for_boot "$project" "$inst" || exit 2
 
 # re-run setup, then run test suites
+warn "Re-run setup for upgraded OS"
 lxc --project "$project" exec "$inst" \
     --cwd /cloudinabox \
     -- \

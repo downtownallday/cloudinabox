@@ -2,8 +2,31 @@ name: commit-tests
 on: [push, workflow_dispatch]
 jobs:
   # CiaB vanilla on noble and jammy
-  vanilla:
-    runs-on: [ubuntu-24.04, ubuntu-22.04]
+  vanilla-noble:
+    runs-on: ubuntu-24.04
+    env:
+      DOWNLOAD_NEXTCLOUD_FROM_GITHUB: true
+      PRIMARY_HOSTNAME: box1.abc.com
+    steps:
+      - uses: actions/checkout@v2
+      # remove mysql server
+      - name: remove-mysql-server
+        run: |
+          sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
+          sudo /usr/sbin/apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
+          sudo apt-get remove --purge mysql* libmysql*
+          sudo rm -rf /etc/mysql
+          sudo rm -rf /var/lib/mysql
+          sudo rm -f /root/.my.cnf
+          rm -f .my.cnf
+      - name: fix sshd "Missing privilege separation directory"
+        run: sudo -E mkdir -p /run/sshd
+      - name: setup
+        run: sudo -E tests/system-setup/vanilla.sh -v
+      - name: test-runner
+        run: sudo -E tests/runner.sh -dumpoutput default
+  vanilla-jammy:
+    runs-on: ubuntu-22.04
     env:
       DOWNLOAD_NEXTCLOUD_FROM_GITHUB: true
       PRIMARY_HOSTNAME: box1.abc.com

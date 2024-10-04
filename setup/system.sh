@@ -39,7 +39,7 @@ if add-apt-repository -L | grep -q ondrej/php; then
 	if systemctl is-active --quiet nginx; then
 		systemctl stop nginx
 	fi
-	for v in $(ls /usr/bin/php[0-9]*.[0-9]*); do
+	for v in $(ls /usr/bin/php[0-9]*.[0-9]* 2>/dev/null); do
 		if ! $v --version | grep -qi ubuntu; then
 			v=$(basename $v)
 			echo "Removing ondrej/php $v"
@@ -48,7 +48,7 @@ if add-apt-repository -L | grep -q ondrej/php; then
 			hide_output apt-get purge -y $pkgs
 		fi
 	done
-	hide_output add-apt-repository --remove ppa:ondrej/php
+	hide_output add-apt-repository --yes --remove ppa:ondrej/php
 fi
 
 # make sure we don't reinstall ppa:ondrej/php

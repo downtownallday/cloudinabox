@@ -62,6 +62,7 @@ sync_recursive() {
 
 # sync whole directories
 sync_recursive "$miabdir/tests/lib/" "tests/lib"
+sync_recursive "$miabdir/tests/bin/" "tests/bin"
 sync_recursive "$miabdir/tests/assets/ssl/" "tests/assets/ssl"
 
 
@@ -69,7 +70,9 @@ sync_recursive "$miabdir/tests/assets/ssl/" "tests/assets/ssl"
 # destination in 'ciab_files')
 ciab_files=(
     ./tests/suites/_init.sh
-    ./tests/bin/restore_backup.sh
+    ./tests/lxd/parallel.sh
+    ./tests/lxd/README.md
+    ./tests/lxd/preloaded/create_preloaded.sh
     ./conf/nginx-ssl.conf
     ./conf/ehdd-unattended-upgrades-after.path
     ./conf/ehdd-unattended-upgrades-after.service
@@ -84,7 +87,9 @@ ciab_files=(
 )
 miab_files=(
     $miabdir/tests/suites/_init.sh
-    $miabdir/tests/bin/restore_backup.sh
+    $miabdir/tests/lxd/parallel.sh
+    $miabdir/tests/lxd/README.md
+    $miabdir/tests/lxd/preloaded/create_preloaded.sh
     $miabdir/conf/nginx-ssl.conf
     $miabdir/conf/ehdd-unattended-upgrades-after.path
     $miabdir/conf/ehdd-unattended-upgrades-after.service

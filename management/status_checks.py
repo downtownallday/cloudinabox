@@ -13,7 +13,7 @@ import hooks
 from ssl_certificates import get_ssl_certificates, get_domain_ssl_files, check_certificate
 #from mailconfig import get_mail_domains, get_mail_aliases
 
-from utils import shell, sort_domains, load_env_vars_from_file, load_settings
+from utils import shell, sort_domains, load_env_vars_from_file, load_settings, get_ssh_port, get_ssh_config_value
 
 
 class FileOutput:
@@ -40,8 +40,8 @@ class FileOutput:
 
 	def print_block(self, message, first_line="   "):
 		print(first_line, end='', file=self.buf)
-		message = re.sub("\n\s*", " ", message)
-		words = re.split("(\s+)", message)
+		message = re.sub("\n\\s*", " ", message)
+		words = re.split("(\\s+)", message)
 		linelen = 0
 		for w in words:
 			if self.width and (linelen + len(w) > self.width-1-len(first_line)):
@@ -198,20 +198,15 @@ def is_port_allowed(ufw, port):
 
 
 def check_ssh_password(env, output):
-	# Check that SSH login with password is disabled. The openssh-server
-	# package may not be installed so check that before trying to access
-	# the configuration file.
-	if not os.path.exists("/etc/ssh/sshd_config"):
-		return
-	sshd = open("/etc/ssh/sshd_config").read()
-	if re.search("\nPasswordAuthentication\s+yes", sshd) \
-		or not re.search("\nPasswordAuthentication\s+no", sshd):
-		output.print_error("""The SSH server on this machine permits password-based login. A more secure
-			way to log in is using a public key. Add your SSH public key to $HOME/.ssh/authorized_keys, check
-			that you can log in without a password, set the option 'PasswordAuthentication no' in
-			/etc/ssh/sshd_config, and then restart the openssh via 'sudo service ssh restart'.""")
-	else:
-		output.print_ok("SSH disallows password-based login.")
+	config_value = get_ssh_config_value("passwordauthentication")
+	if config_value:
+		if config_value == "no":
+			output.print_ok("SSH disallows password-based login.")
+		else:
+			output.print_error("""The SSH server on this machine permits password-based login. A more secure
+				way to log in is using a public key. Add your SSH public key to $HOME/.ssh/authorized_keys, check
+				that you can log in without a password, set the option 'PasswordAuthentication no' in
+				/etc/ssh/sshd_config, and then restart the openssh via 'sudo service ssh restart'.""")
 
 _apt_updates = None
 def list_apt_updates(apt_update=True):
@@ -292,29 +287,6 @@ def check_free_memory(rounded_values, env, output):
 	else:
 		if rounded_values: memory_msg = "System free memory is below 10%."
 		output.print_error(memory_msg)
-
-
-
-def get_ssh_port():
-	# Returns ssh port
-	try:
-		output = subprocess.check_output(
-			[ '/usr/sbin/sshd', '-T' ],
-			stderr=subprocess.DEVNULL  # drop warnings (eg, deprecated option)
-		).decode('utf-8')
-	except FileNotFoundError:
-		# sshd is not installed. That's ok.
-		return None
-
-	returnNext = False
-	for e in output.split():
-		if returnNext:
-			return int(e)
-		if e == "port":
-			returnNext = True
-
-	# Did not find port!
-	return None
 
 
 def check_service(i, service, env):

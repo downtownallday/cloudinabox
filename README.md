@@ -16,13 +16,7 @@ See [Mail-in-a-Box LDAP](https://github.com/downtownallday/mailinabox-ldap).
 
 The primary purpose of this project is be able to easly deploy and maintain a cloud server (Nextcloud) for a home or small business, and together with Mail-in-a-Box LDAP, share a single user account database and similar installation and maintenance experiences. That said, both Mail-in-a-Box and Cloud-in-a-Box work just fine independently as well.
 
-Cloud-in-a-Box works only on Ubuntu 22 (Jammy).
-
-For current users: if you're currently on Ubuntu 20 (Focal) and wish to upgrade to Ubuntu 22 (Jammy), your Nextcloud installation MUST BE AT VERSION 24 OR HIGHER. Do not upgrade to Jammy without first upgrading Nextcloud.
-
-If you're running on Ubuntu 18 (Bionic), you'll have to upgrade to Ubuntu 20 (Focal) first, then check out the latest cloudinabox code, then re-run setup, then upgrade Nextcloud to version 24+, then upgrade to Jammy.
-
-Upgrading from Ubuntu 20 (Focal) to Ubuntu 22 (Jammy) may be done in-place using the system's OS upgrade program /usr/bin/do-release-upgrade, or from backup files (restored into /home/user-data) on a fresh Jammy system.
+Cloud-in-a-Box works only on Ubuntu 24 (Noble) and Ubuntu 22 (Jammy).
 
 
 ## Integration support with Mail-in-a-Box LDAP
@@ -38,9 +32,9 @@ Note that Mail-in-a-Box LDAP is a fork of Mail-in-a-Box that supports LDAP for u
 
 ## Installation
 
-1. on a fresh Ubuntu 22 (Jammy) system, install git `apt-get install git`
+1. on a fresh Ubuntu 24 (Noble) or Ubuntu 22 (Jammy) system, install git `apt-get install git`
 2. from your home directory, clone the source code repo `git clone https://github.com/downtownallday/cloudinabox.git cloudinabox`
-3. checkout the latest version `git checkout v0.9`
+3. checkout the latest version `git checkout v0.10`
 4. set your working directory to cloudinabox `cd cloudinabox`
 5. run setup as root `sudo setup/start.sh` (or `sudo ehdd/start-encrypted.sh` to use encryption-at-rest)
 
@@ -63,16 +57,32 @@ A self-signed certificate is installed during a first-time setup. For `certbot` 
 2. Timing. Cloud-in-a-Box does not have a management interface. Certificate provisioning occurs during the daily run of `management/daily_tasks.sh` (Daily Tasks) at 3:00am. To provision a Let's Encrypt certificate immediately, run `sudo management/daily_tasks.sh` manually from a shell prompt after setup has completed successfully. Note that the results of Daily Tasks is emailed to the address given during setup. Please be sure email is functioning properly (if you integrated with Mail-in-a-Box LDAP, you can test email with `echo "hi" | ssmtp me@domain.tld`).
 
 
-## Upgrades
+## Upgrading Cloud-in-a-Box
 
 Similar to Mail-in-a-Box, upgrading Cloud-in-a-Box is simply a matter of re-running setup with the updated source code.
 
 1. set your working directory to cloudinabox `cd cloudinabox`
 1. get the latest source code `git pull`
-1. checkout the new version `git checkout v0.9`
+1. checkout the new version `git checkout v0.10`
 1. run setup `sudo setup/start.sh`
 
-However, Nextcloud upgrades are handled by you using the Nextcloud user interface or directly using `occ` commands from the command line. You will find `occ` in `/usr/local/nextcloud`.
+Nextcloud upgrades are handled by you using the Nextcloud user interface or directly using `occ` commands from the command line. You will find `occ` in `/usr/local/nextcloud`.
+
+## Upgrading Ubuntu
+
+Ubuntu upgrades are essential to keep up with security fixes. Carefully follow these steps to upgrade.
+
+*Important*: Do not upgrade Ubuntu without first upgrading Nextcloud.
+
+*Important*: Do not skip Ubuntu versions - ie. don't go directly to Noble from Focal. Instead, upgrade to Jammy then to Noble. Be sure to upgrade Nextcloud and Cloud-in-a-Box at each step.
+
+- If you're currently on *Ubuntu 18 (Bionic)*: Upgrade Nextcloud to version 20, then upgrade Ubuntu to Focal, then checkout Cloud-in-a-Box v0.8 and run setup, then follow the steps for Focal below.
+
+- If you're currently on *Ubuntu 20 (Focal)*: Upgrade Nextcloud to version 25, then upgrade Ubuntu to Jammy, then checkout Cloud-in-a-Box v0.10 and run setup, then follow the steps for Jammy below.
+
+- If you're currently on *Ubuntu 22 (Jammy)*: Upgrade Nextcloud to version 30, then upgrade Ubuntu to Noble, then checkout the latest Cloud-in-a-Box and run setup.
+
+Ubuntu upgrades may be done in-place using the system's OS upgrade program /usr/bin/do-release-upgrade, or from backup files (restored into /home/user-data) on a fresh system.
 
 
 ## Backup and Restore

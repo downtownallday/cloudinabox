@@ -46,7 +46,7 @@ chmod g-w /etc /etc/default /usr
 # - Check if the user intents to activate swap on next boot by checking fstab entries.
 # - Check if a swapfile already exists
 # - Check if the root file system is not btrfs, might be an incompatible version with
-#   swapfiles. User should hanle it them selves.
+#   swapfiles. User should handle it them selves.
 # - Check the memory requirements
 # - Check available diskspace
 
@@ -68,7 +68,7 @@ if
 then
 	echo "Adding a swap file to the system..."
 
-	# Allocate and activate the swap file. Allocate in 1KB chuncks
+	# Allocate and activate the swap file. Allocate in 1KB chunks
 	# doing it in one go, could fail on low memory systems
 	dd if=/dev/zero of=/swapfile bs=1024 count=$((1024*1024)) status=none
 	if [ -e /swapfile ]; then
@@ -229,7 +229,7 @@ fi
 # issue any warnings if no entropy is actually available. (http://www.2uo.de/myths-about-urandom/)
 # Entropy might not be readily available because this machine has no user input
 # devices (common on servers!) and either no hard disk or not enough IO has
-# ocurred yet --- although haveged tries to mitigate this. So there's a good chance
+# occurred yet --- although haveged tries to mitigate this. So there's a good chance
 # that accessing /dev/urandom will not be drawing from any hardware entropy and under
 # a perfect-storm circumstance where the other seeds are meaningless, /dev/urandom
 # may not be seeded at all.
@@ -281,14 +281,14 @@ if [ -z "${DISABLE_FIREWALL:-}" ]; then
 	# ssh might be running on an alternate port. Use sshd -T to dump sshd's #NODOC
 	# settings, find the port it is supposedly running on, and open that port #NODOC
 	# too. #NODOC
-	SSH_PORT=$(sshd -T 2>/dev/null | grep "^port " | sed "s/port //") #NODOC
+	SSH_PORT=$(sshd -T 2>/dev/null | grep "^port " | sed "s/port //" | tr '\n' ' ') #NODOC
 	if [ -n "$SSH_PORT" ]; then
-	if [ "$SSH_PORT" != "22" ]; then
-
-	echo "Opening alternate SSH port $SSH_PORT." #NODOC
-	ufw_limit "$SSH_PORT" #NODOC
-
-	fi
+	    for port in $SSH_PORT; do
+	        if [ "$port" != "22" ]; then
+	            echo "Opening alternate SSH port $port." #NODOC
+                ufw_limit "$port" #NODOC
+            fi
+        done
 	fi
 
 	ufw --force enable;

@@ -17,6 +17,11 @@
 #    + jq
 #
 
+# MIAB uses ntpd and not systemd-timesyncd (a simple sntp-only
+# service). Ubuntu starting with Nobel includes timesyncd by default,
+# so remove it first or ntp will fail to install.
+hide_output apt-get remove -y systemd-timesyncd
+
 echo "# GENERATED FILE - DO NOT EDIT - GENERATED FROM setup/system-miab.sh" > setup/system-miab-mods.sh \
      || die "Could not create setup/system-miab-mods.sh"
 
@@ -28,6 +33,26 @@ sed -i "s/python3-dev/python3-dateutil/g" setup/system-miab-mods.sh \
 
 sed -i "s/python3-pip/python3-dnspython python3-psutil xz-utils jq/g" setup/system-miab-mods.sh \
     || die "Could not edit setup/system-miab-mods.sh"
+
+# remove ondrej ppa if it's already installed
+if add-apt-repository -L | grep -q ondrej/php; then
+	if systemctl is-active --quiet nginx; then
+		systemctl stop nginx
+	fi
+	for v in $(ls /usr/bin/php[0-9]*.[0-9]* 2>/dev/null); do
+		if ! $v --version | grep -qi ubuntu; then
+			v=$(basename $v)
+			echo "Removing ondrej/php $v"
+			pkgs=$(dpkg -l | awk "/^.i/ && index(\$2,\"$v\")>0 {print \$2}")
+			wait_for_apt_lock
+			hide_output apt-get purge -y $pkgs
+		fi
+	done
+	hide_output add-apt-repository --yes --remove ppa:ondrej/php
+fi
+
+# make sure we don't reinstall ppa:ondrej/php
+sed -i 's/^\(hide_output add-apt-repository --y ppa:ondrej\/php\)$/#\1/g' setup/system-miab-mods.sh
 
 source_miab_script "setup/system-miab-mods.sh"
 

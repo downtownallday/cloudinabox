@@ -9,7 +9,7 @@ provision_start "" "/cloudinabox" || exit 1
 #provision_start "preloaded-ubuntu-jammy" "/cloudinabox" || exit 1
 
 # Setup system
-if [ "$1" = "miab" ]; then
+if [ "$TESTS" = "miab" -o "$1" = "miab" ]; then
     # vanilla connected to remote miab (miab-ldap with hostname
     # "vanilla.local" must be up and running)
     provision_shell <<<"
@@ -19,11 +19,11 @@ export MAILINABOX_HOST=vanilla.local
 export MAILINABOX_SERVICE_PASSWORD=Test_LDAP_1234
 export MAILINABOX_SMARTHOST_AUTH_USER=qa@abc.com
 export MAILINABOX_SMARTHOST_AUTH_PASSWORD=Test_1234
-tests/system-setup/vanilla.sh -v
+tests/system-setup/vanilla.sh --qa-ca -v
 "
     provision_done $?
     
-else
+elif [ -z "$1" ]; then
     # vanilla (default - no miab integration)
     provision_shell <<<"
 cd /cloudinabox
@@ -32,4 +32,7 @@ tests/system-setup/vanilla.sh -v
 "
     provision_done $?
 
+else
+    echo "Invalid argument: $1"
+    exit 1
 fi

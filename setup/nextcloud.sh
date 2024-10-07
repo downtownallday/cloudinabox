@@ -219,8 +219,9 @@ update_nextcloud_config() {
                  5 => 'OC\\Preview\\XBitmap',
                  6 => 'OC\\Preview\\Movie',
                  7 => 'OC\\Preview\\MP3',
-                 8 => 'OC\\Preview\\TXT',
-                 9 => 'OC\\Preview\\MarkDown')" \
+                 8 => 'OC\\Preview\\OpenDocument',
+                 9 => 'OC\\Preview\\TXT',
+                 10 => 'OC\\Preview\\MarkDown')" \
          '+preview_max_x' 1440 \
          '+preview_max_y' 1080 \
          '+preview_max_scale_factor' 1 \

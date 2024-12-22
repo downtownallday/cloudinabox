@@ -411,7 +411,7 @@ server {
 
      # Adding the cache control header for js, css and map files
      # Make sure it is BELOW the PHP block
-     location ~ \.(?:css|js|mjs|woff2?|svg|gif|map)\$ {
+     location ~ \.(?:css|js|mjs|svg|gif|wasm|tflite|map|ogg|flac)\$ {
         try_files \$uri /index.php\$request_uri;
         add_header Cache-Control "public, max-age=15778463";
         # Add headers to serve security related headers (It is intended to
@@ -425,12 +425,12 @@ server {
         # will add the domain to a hardcoded list that is shipped
         # in all major browsers and getting removed from this list
         # could take several months.
-        add_header X-Content-Type-Options nosniff;
-        add_header X-XSS-Protection "1; mode=block";
-        add_header X-Robots-Tag none;
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header X-Robots-Tag none always;
         add_header X-Download-Options noopen;
-        add_header X-Permitted-Cross-Domain-Policies none;
-        add_header Referrer-Policy no-referrer;
+        add_header X-Permitted-Cross-Domain-Policies none always;
+        add_header Referrer-Policy no-referrer always;
 
         # Optional: Don't log access to assets
         access_log off;
@@ -439,6 +439,12 @@ server {
      location ~ \.(?:png|html|ttf|ico|jpg|jpeg|bcmap)\$ {
         try_files \$uri /index.php\$request_uri;
         # Optional: Don't log access to other assets
+        access_log off;
+     }
+
+     location ~ \.(otf|woff2?)$ {
+        try_files \$uri /index.php\$request_uri;
+        expires 7d;
         access_log off;
      }
 }   

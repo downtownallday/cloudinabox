@@ -5,21 +5,22 @@
 # Ubuntu 18 Bionic - php7.2
 
 # see: https://docs.nextcloud.com/server/NEXTCLOUD_VERSION/admin_manual/installation/system_requirements.html
-# Nextcloud version   Nextcloud PHPs   Noble Jammy Focal Bionic
-# 30                  8.1, 8.2, 8.3    x     x
-# 29                  8.1, 8.2, 8.3    x     x
-# 28                  8.1, 8.2, 8.3    x     x
-# 27                  8.1, 8.2               x
-# 26                  8.0, 8.1, 8.2          x
-# 25                  7.4, 8.0, 8.1          x     x
-# 24                  7.4, 8.0, 8.1          x     x
-# 23                  7.3, 7.4, 8.0                x
-# 22                  7.3, 7.4, 8.0                x
-# 21                  7.3, 7.4, 8.0                x
-# 20                  7.2, 7.3, 7.4                x     x
-# 19                  7.2, 7.3, 7.4                x     x
-# 18                  7.2, 7.3, 7.4                x     x
-# 17                  7.2                                x
+# Nextcloud version   Nextcloud PHPs      Noble Jammy Focal Bionic
+# 31                  8.1, 8.2, 8.3, 8.4  x     x
+# 30                  8.1, 8.2, 8.3       x     x
+# 29                  8.1, 8.2, 8.3       x     x
+# 28                  8.1, 8.2, 8.3       x     x
+# 27                  8.1, 8.2                  x
+# 26                  8.0, 8.1, 8.2             x
+# 25                  7.4, 8.0, 8.1             x     x
+# 24                  7.4, 8.0, 8.1             x     x
+# 23                  7.3, 7.4, 8.0                   x
+# 22                  7.3, 7.4, 8.0                   x
+# 21                  7.3, 7.4, 8.0                   x
+# 20                  7.2, 7.3, 7.4                   x     x
+# 19                  7.2, 7.3, 7.4                   x     x
+# 18                  7.2, 7.3, 7.4                   x     x
+# 17                  7.2                                   x
 
 # Summary of above matrix for functions.sh::get_required_php_version()
 # os-major-version:os-php-version:nextcloud-min-version:nextcloud-max-version

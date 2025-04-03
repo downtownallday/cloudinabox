@@ -78,6 +78,7 @@ ciab_files=(
     ./conf/ehdd-unattended-upgrades-after.service
     ./tools/editconf.php
     ./tools/editconf.py
+    ./tools/ssl_cleanup
     ./setup/connect-nextcloud-to-miab.sh
     ./setup/mods.available/README.md
     ./setup/mods.available/coturn.sh
@@ -95,6 +96,7 @@ miab_files=(
     $miabdir/conf/ehdd-unattended-upgrades-after.service
     $miabdir/tools/editconf.php
     $miabdir/tools/editconf.py
+    $miabdir/tools/ssl_cleanup
     $miabdir/setup/mods.available/connect-nextcloud-to-miab.sh
     $miabdir/setup/mods.available/README.md
     $miabdir/setup/mods.available/coturn.sh

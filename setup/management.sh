@@ -153,8 +153,9 @@ IN_DEF && /wait_for_service/ { print "# "$0; next }
         die "Could not modify backup.py"
 
 
-    # add --exclude-if-present NOBACKUP to duplicicy call
-    sed -i 's|"--exclude"\s*,\s*backup_root|"--exclude-if-present", "NOBACKUP", &|g' management/backup.py ||
+    # add --exclude-if-present NOBACKUP to duplicicy call and
+    #     --exclude-if-present .NOBACKUP to duplicicy call
+    sed -i 's|"--exclude"\s*,\s*backup_root|"--exclude-if-present", "NOBACKUP", "--exclude-if-present", ".NOBACKUP", &|g' management/backup.py ||
         die "Could not add --exclude-if-present to backup.py"
 
     

@@ -202,11 +202,23 @@ create_hooks_py() {
     sed -i -E 's/mailinabox(_mods\.conf|\.conf)/cloudinabox\1/g' "management/hooks.py" || die "Could not modify hooks.py"
 }
 
+create_ssl_cleanup() {
+    # create tools/ssl_cleanup from tools/ssl_cleanup-miab
+    # * change the conf file location
+
+    say_verbose "create tools/ssl_cleanup from mail-in-a-box's"
+    sed 's|\(^#!/.*\)|\1\n# GENERATED FILE - DO NOT EDIT|' tools/ssl_cleanup-miab > tools/ssl_cleanup &&
+        sed -i 's/\/etc\/mailinabox\.conf/\/etc\/cloudinabox.conf/g' "tools/ssl_cleanup" &&
+        chmod 755 tools/ssl_cleanup ||
+            die "Could not create tools/ssl_cleanup"
+}
+
 
 create_backup_py
 create_utils_py
 create_ssl_certificates_py
 create_hooks_py
+create_ssl_cleanup
 
 
 # set up cron job for daily_tasks (status checks, backups, etc)

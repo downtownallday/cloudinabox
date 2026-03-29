@@ -8,7 +8,7 @@ jobs:
       DOWNLOAD_NEXTCLOUD_FROM_GITHUB: true
       PRIMARY_HOSTNAME: box1.abc.com
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       # remove mysql server
       - name: remove-mysql-server
         run: |
@@ -31,7 +31,7 @@ jobs:
       DOWNLOAD_NEXTCLOUD_FROM_GITHUB: true
       PRIMARY_HOSTNAME: box1.abc.com
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       # remove mysql server
       - name: remove-mysql-server
         run: |

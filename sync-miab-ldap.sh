@@ -52,11 +52,11 @@ fi
 sync_recursive() {
     local src="$1"
     local dst="$2"
-    echo "Syncing $dst"
+    echo "Recursively sync $dst"
     if $dry_run; then
-        rsync -a --dry-run "$src" "$dst"
+        rsync -av --dry-run --exclude="**/*.pyc" "$src" "$dst" | awk '{ f="'\'$src'" $0 "'\''"; if (system("[ -f " f " ]") == 0) { print " '${F_WARN}'COPY'${F_RESET}': " f " -> " "'$dst'" "/" $0 } }'
     else
-        rsync --info=COPY,DEL -a "$src" "$dst"
+        rsync --info=COPY,DEL -a --exclude="**/*.pyc" "$src" "$dst"
     fi
 }
 

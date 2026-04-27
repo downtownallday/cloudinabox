@@ -42,8 +42,7 @@ config_server() {
     let avail="$avail * 7 / 10 / 1024"
 
     cat > /etc/mysql/mariadb.conf.d/51-server.cnf <<EOF
-[mysqld]
-innodb_file_per_table=1
+[mariadbd]
 binlog_format=ROW
 transaction_isolation=READ-COMMITTED
 datadir=$SQL_DATADIR
@@ -53,8 +52,44 @@ EOF
 }
 
 
+update_apparmor() {
+    local profile="/etc/apparmor.d/mariadbd"
+    local profile_local="/etc/apparmor.d/local/mariadbd"
+    if [ ! -e "$profile" ]; then
+        # no profile - probably older version of Ubuntu / mariadb
+        return 0
+    fi
+
+	# Update mariadb's access rights under AppArmor so that it has
+	# access to database files in the user-data location
+
+    rm -f "$profile_local" || return 1
+    
+    if [ "${1:-}" = "init" ]; then
+        # the mariadb-install-db script requires setuid/setgid
+	    cat > "$profile_local" <<EOF
+# allow mariadb to switch from root to unprivileged account
+capability setuid,
+capability setgid,
+
+EOF
+    fi
+    cat >> "$profile_local" <<EOF
+# allow r/w/lock to database data files
+$SQL_DATADIR/ r,
+$SQL_DATADIR/** rwk,
+EOF
+	chmod 0644 "$profile_local" || return 1
+
+	# Load settings into the kernel if AppArmor is enabled
+	if aa-status --enabled; then
+		/usr/sbin/apparmor_parser -r "$profile" || return 1
+	fi
+}
+
+
 create_datadir() {
-    if [ "$DATA_DIR_CREATED" == "yes" ]; then
+    if [ "$DATA_DIR_CREATED" = "yes" ]; then
         return 0
     fi
 
@@ -67,12 +102,25 @@ create_datadir() {
     mkdir -p "$SQL_DATABACKUPDIR" || die "Unable to create $SQL_DATABACKUPDIR"
     chmod 750 "$SQL_DATABACKUPDIR" || failed=yes
 
+    # make sure systemd and AppArmor allow rw access to
+    # /home/user-data
+    #
+    # The mariadb-install-db script runs a new instance of mariadbd
+    # (so it's ok to allow the one controlled by systemd to continue
+    # to run). However, the new mariadb instance requires
+    # setuid/setgid apparmor permissions. So, we allow it, run the
+    # script, then take it away.
+
+    say_verbose "Update apparmor and systemd permissions"
+    fix_systemd || failed=yes
+    update_apparmor "init" || failed=yes
+
     local tmp="/tmp/sql.$$"
    
     if [ "$failed" == "no" ]; then
         local xargs=()
         is_verbose && xargs+=(--verbose)
-        if ! mysql_install_db --user=mysql --datadir="$SQL_DATADIR" "${xargs[@]}" >"$tmp" 2>&1
+        if ! mariadb-install-db --user=mysql --datadir="$SQL_DATADIR" "${xargs[@]}" >"$tmp" 2>&1
         then
             cat "$tmp"
             echo "Also look for logs in /var/log"
@@ -81,9 +129,10 @@ create_datadir() {
     fi
 
     rm -f "$tmp"
+    update_apparmor || failed=yes
     
     if [ "$failed" == "yes" ]; then
-        #rm -rf "$SQL_DATADIR" || say "Unable to remove $SQL_DATADIR - please delete manually"
+        say "Mariadb setup failed. You may need to manually delete $SQL_DATADIR"
         return 1
     else
         tools/editconf.py "$CIAB_SQL_CONF" "DATA_DIR_CREATED=yes"
@@ -97,8 +146,8 @@ fix_systemd() {
     systemctl stop mysql
     systemctl disable mysql >/dev/null 2>&1
     
-    # mariadb refuses to allow datadir to be in /home ...
-    # override the default systemd service file for mariadb
+    # The ProtectHome setting prevents mariadb from writing in /home,
+    # so override the default systemd service file for mariadb
     local d="/etc/systemd/system/mariadb.service.d"
     mkdir -p "$d" || die "Could not create $d"
     cat > "$d/cloudinabox.conf" <<EOF
@@ -191,21 +240,18 @@ EOF
     DATA_DIR_SECURED=yes
 }
 
-
 # install system packages
 install_packages || die "Unable to continue"
 
-# create STORAGE_ROOT/sql/ciab_sql.conf
+# create or load STORAGE_ROOT/sql/ciab_sql.conf
 create_sql_conf      || die "Unable to continue"
 
-# create mariadb.cnf file in /etc
+# create mariadb.cnf file in /etc/mysql
 config_server    || die "Unable to continue"
 
 # create fresh data directory, if needed
 create_datadir   || die "Installation failed, unable to continue"
 
-# server must be restarted for configuration changes to take effect
-fix_systemd
 systemctl restart mariadb || die "mariadb would not start!"
 
 # secure the server - only needs to be done once - on RUNNING server

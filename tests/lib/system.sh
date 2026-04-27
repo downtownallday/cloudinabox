@@ -67,12 +67,21 @@ update_system_time() {
         echo "ntpd is already running, not updating time"
         return 0
     fi
-    if [ ! -x /usr/sbin/ntpdate ]; then
-        echo "Installing ntpdate"
-        wait_for_apt
-        exec_no_output apt-get install -y ntpdate || return 1
+    if systemctl is-active --quiet chrony; then
+        echo "chrony is already running, not updating time"
+        return 0
     fi
-    ntpdate ntp.ubuntu.com
+
+    if [ -x /usr/sbin/chronyd ]; then
+        chronyd -q -L 1 # sync and quit
+    else
+        if [ ! -x /usr/sbin/ntpdate ]; then
+            echo "Installing ntpdate"
+            wait_for_apt
+            exec_no_output apt-get install -y ntpdate || return 1
+        fi
+        ntpdate ntp.ubuntu.com
+    fi
 }
 
 set_system_hostname() {
@@ -101,32 +110,8 @@ install_docker() {
         echo "Docker already installed"
         return 0
     fi
-    
     wait_for_apt
-    apt-get install -y -qq \
-            apt-transport-https \
-            ca-certificates \
-            curl \
-            gnupg-agent \
-            software-properties-common \
-        || return 1
-       
-    wait_for_apt
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
-        || return 2
-    
-    wait_for_apt
-    apt-key fingerprint 0EBFCD88 || return 3
-    
-    wait_for_apt
-    add-apt-repository -y --update "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" || return 4
-    
-    wait_for_apt
-    apt-get install -y -qq \
-            docker-ce \
-            docker-ce-cli \
-            containerd.io \
-        || return 5
+    exec_no_output apt-get install -y docker.io || return 1
 }
 
 

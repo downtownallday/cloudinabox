@@ -131,7 +131,7 @@ install_nextcloud() {
         say_verbose "Running Nextcloud installation"
         local occargs=""
         is_verbose && occargs="-vvv"
-        sudo -E -u www-data $phpx $NCDIR/occ  maintenance:install $occargs --database "mysql" --database-name "$NC_SQL_DB"  --database-user "$NC_SQL_USER" --database-pass "$NC_SQL_PASSWORD" --admin-user "admin" --admin-pass "$SQL_ROOT_PASSWORD" --data-dir "$NCDATA"
+        sudo -u www-data $phpx $NCDIR/occ  maintenance:install $occargs --database "mysql" --database-name "$NC_SQL_DB"  --database-user "$NC_SQL_USER" --database-pass "$NC_SQL_PASSWORD" --admin-user "admin" --admin-pass "$SQL_ROOT_PASSWORD" --data-dir "$NCDATA"
         if [ $? -ne 0 ]; then
             die "Nextcloud occ maintenance:install failed"
         fi
@@ -143,26 +143,26 @@ EOF
         chmod 600 "$CIAB_NEXTCLOUD_CONF"    
 
         # additional occ commands
-        sudo -E -u www-data $phpx $NCDIR/occ maintenance:update:htaccess -q
+        sudo -u www-data $phpx $NCDIR/occ maintenance:update:htaccess -q
         [ $? -ne 0 ] && errors+=("occ maintenance:update:htaccess failed")
-        sudo -E -u www-data $phpx $NCDIR/occ app:disable survey_client -q
+        sudo -u www-data $phpx $NCDIR/occ app:disable survey_client -q
         [ $? -ne 0 ] && errors+=("occ app:disable survey_client failed")
-        sudo -E -u www-data $phpx $NCDIR/occ app:enable admin_audit -q
+        sudo -u www-data $phpx $NCDIR/occ app:enable admin_audit -q
         [ $? -ne 0 ] && errors+=("occ app:enable admin_audit failed")
-        sudo -E -u www-data $phpx $NCDIR/occ db:convert-filecache-bigint -q --no-interaction
+        sudo -u www-data $phpx $NCDIR/occ db:convert-filecache-bigint -q --no-interaction
         [ $? -ne 0 ] && errors+=("occ db:convert-filecache-bigint failed")
-        sudo -E -u www-data $phpx $NCDIR/occ app:list > $STORAGE_ROOT/nextcloud/app.list
+        sudo -u www-data $phpx $NCDIR/occ app:list > $STORAGE_ROOT/nextcloud/app.list
         [ $? -ne 0 ] && errors+=("occ app:list failed")
 
     else
         # maintenance / recovery commands
-        sudo -E -u www-data $phpx $NCDIR/occ maintenance:mode --off
+        sudo -u www-data $phpx $NCDIR/occ maintenance:mode --off
         [ $? -ne 0 ] && errors+=("occ maintenance:mode --off failed")
-        sudo -E -u www-data $phpx $NCDIR/occ maintenance:repair -q
+        sudo -u www-data $phpx $NCDIR/occ maintenance:repair -q
         #[ $? -ne 0 ] && errors+=("occ maintenance:repair failed")
-        sudo -E -u www-data $phpx $NCDIR/occ db:add-missing-indices -q
+        sudo -u www-data $phpx $NCDIR/occ db:add-missing-indices -q
         [ $? -ne 0 ] && errors+=("occ db:add-missing-indices failed")
-        sudo -E -u www-data $phpx $NCDIR/occ files:scan --all
+        sudo -u www-data $phpx $NCDIR/occ files:scan --all
         #[ $? -ne 0 ] && errors+=("occ files:scan --all failed")
     fi
 
@@ -256,7 +256,7 @@ update_crontab() {
 EOF
     [ $? -ne 0 ] && die "Error installing crontab"    
 
-    sudo -E -u www-data $phpx $NCDIR/occ background:cron -q
+    sudo -u www-data $phpx $NCDIR/occ background:cron -q
     [ $? -ne 0 ] && die "Could not run occ backgrond:cron"
     return 0
 }
@@ -276,7 +276,7 @@ restore_apps() {
     for app in "${desired[@]}"; do
         if ! array_contains "$app" ${actual[@]}; then
             say_verbose "Install missing app: $app"
-            sudo -E -u www-data $phpx $NCDIR/occ app:install "$app" -q --no-interaction
+            sudo -u www-data $phpx $NCDIR/occ app:install "$app" -q --no-interaction
             [ $? -ne 0 ] && say "Could not install Nextcloud app $app"
         fi
     done
@@ -297,15 +297,16 @@ create_nextcloud_site() {
         mixins="$(cat $local_mods_dir/nginx.mixins)"
         [ $? -ne 0 ] && die "Could not read $local_mods_dir/nginx.mixins"
     fi
-         
+    
     cat<<EOF > /etc/nginx/sites-available/cloudinabox-nextcloud
 upstream php-handler {
    server unix:/var/run/php/php${REQUIRED_PHP_VERSION}-fpm.sock;
 }
 
 server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
+    listen 443 ssl$([ $OS_MAJOR -lt 26 ] && echo " http2");
+    listen [::]:443 ssl$([ $OS_MAJOR -lt 26 ] && echo " http2");
+    $([ $OS_MAJOR -ge 26 ] && echo " http2 on;")
     server_name ${server_name};
     server_tokens off;
 

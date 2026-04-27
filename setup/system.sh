@@ -17,11 +17,6 @@
 #    + jq
 #
 
-# MIAB uses ntpd and not systemd-timesyncd (a simple sntp-only
-# service). Ubuntu starting with Nobel includes timesyncd by default,
-# so remove it first or ntp will fail to install.
-hide_output apt-get remove -y systemd-timesyncd
-
 echo "# GENERATED FILE - DO NOT EDIT - GENERATED FROM setup/system-miab.sh" > setup/system-miab-mods.sh \
      || die "Could not create setup/system-miab-mods.sh"
 
@@ -31,10 +26,34 @@ cat setup/system-miab.sh >> setup/system-miab-mods.sh \
 sed -i "s/python3-dev/python3-dateutil/g" setup/system-miab-mods.sh \
     || die "Could not edit setup/system-miab-mods.sh"
 
-sed -i "s/python3-pip/python3-dnspython python3-psutil xz-utils jq/g" setup/system-miab-mods.sh \
+# lbzip2: required for bzip2 decompression of .bz2 files using tar
+sed -i "s/python3-pip/python3-dnspython python3-psutil xz-utils jq lbzip2/g" setup/system-miab-mods.sh \
+    || die "Could not edit setup/system-miab-mods.sh"
+
+# Fix time syncronization
+
+if [ $OS_MAJOR -ge 26 ]; then
+    # Resolute and above (Ubuntu 26+):
+    #    Resolute includes chrony by default. Keep chrony and do not
+    #    install ntp.
+    hide_output apt-get remove -y systemd-timesyncd ntp
+    sed -i "s/ ntp//g" setup/system-miab-mods.sh \
+        || die "Could not edit setup/system-miab-mods.sh"
+else
+    # Older ubuntu:
+    #    On Nobel (Ubuntu 24) systemd-timesyncd (a simple sntp-only
+    #    service) is installed by default. Remove it or ntp will fail
+    #    to install.
+    hide_output apt-get remove -y systemd-timesyncd
+fi
+
+# Pollinate must be run by the pollinate user
+
+sed -i "s/^pollinate/sudo -u pollinate pollinate/" setup/system-miab-mods.sh \
     || die "Could not edit setup/system-miab-mods.sh"
 
 # remove ondrej ppa if it's already installed
+
 if add-apt-repository -L | grep -q ondrej/php; then
 	if systemctl is-active --quiet nginx; then
 		systemctl stop nginx

@@ -46,7 +46,7 @@ init_test_system() {
     case "$PRIMARY_HOSTNAME" in
         *.local )
             wait_for_apt
-            apt-get install -y -qq avahi-daemon || die "could not install avahi"
+            exec_no_output apt-get install -y avahi-daemon || die "could not install avahi"
             ;;
     esac
 }

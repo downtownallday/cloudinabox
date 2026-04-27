@@ -191,6 +191,31 @@ create_ssl_certificates_py() {
         die "Could not append ssl_certificates-miab.py to ssl_certificates.py"
     sed -i "s/from dns_update/from web_update/g" management/ssl_certificates.py || die "Could not modify ssl_certificates.py"
     sed -i "s/get_dns_zones/get_web_zones/g" management/ssl_certificates.py || die "Could not modify ssl_certificates.py"
+
+    # Handle changes to python3 'cryptography' library that miab hasn't
+    # yet adopted.
+    #
+    # change:
+    #   now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+    # to:
+    #   now = datetime.datetime.now(datetime.UTC)
+    #
+    # change x509 certificate date field attribute to 'utc' version. eg ".not_valid_before" => ".not_valid_before_utc"
+    #
+    local cryptography_major_version="$(python3 -c 'import cryptography; print(cryptography.__version__.split(".")[0])')"
+    if [ $? -ne 0 ]; then
+        die "Could not obtain version of python3 cryptography library"
+    fi
+
+    if [ $cryptography_major_version -ge 46 ]; then
+        # version 46.0.5 shipped with Ubuntu 26.04 Resolute
+        sed -i "s/now *= *datetime\\.datetime\\.now(datetime\\.timezone\\.utc)\\.replace(tzinfo=None)/now = datetime.datetime.now(datetime.UTC)/g" management/ssl_certificates.py || die "Could not modify ssl_certificates.py"
+        sed -i "s/\\.not_valid_before/.not_valid_before_utc/g" management/ssl_certificates.py || die "Could not modify ssl_certificates.py"
+        sed -i "s/\\.not_valid_after/.not_valid_after_utc/g" management/ssl_certificates.py || die "Could not modify ssl_certificates.py"
+    fi
+    
+    # check validity
+    python3 -m py_compile management/ssl_certificates.py || die "Script modification code is broken - script:setup/management.sh file:management/ssl_certificates.py"
 }
 
 

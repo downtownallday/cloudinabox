@@ -20,7 +20,6 @@ apt_install \
     $php-bz2 \
     $php-intl \
     $php-mysql \
-    $php-imap \
     $php-gmp \
     $php-imagick \
     $php-bcmath \

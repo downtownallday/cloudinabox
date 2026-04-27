@@ -1,7 +1,7 @@
 # defaults for lxd image creation using
 # tests/bin/provision_functions.sh::provision_start()
 
-DEFAULT_LXD_IMAGE="preloaded-ubuntu-noble"
+DEFAULT_LXD_IMAGE="${DEFAULT_LXD_IMAGE:-preloaded-ubuntu-resolute}"
 DEFAULT_LXD_INST_OPTS=(
     "-p" "default"
     "-p" "bridgenet"

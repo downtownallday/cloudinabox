@@ -25,8 +25,8 @@ jobs:
         run: sudo -E tests/system-setup/vanilla.sh -v
       - name: test-runner
         run: sudo -E tests/runner.sh -dumpoutput default
-  vanilla-jammy:
-    runs-on: ubuntu-22.04
+  vanilla-resolute:
+    runs-on: ubuntu-26.04
     env:
       DOWNLOAD_NEXTCLOUD_FROM_GITHUB: true
       PRIMARY_HOSTNAME: box1.abc.com

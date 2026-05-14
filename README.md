@@ -16,7 +16,7 @@ See [Mail-in-a-Box LDAP](https://github.com/downtownallday/mailinabox-ldap).
 
 The primary purpose of this project is be able to easly deploy and maintain a cloud server (Nextcloud) for a home or small business, and together with Mail-in-a-Box LDAP, share a single user account database and similar installation and maintenance experiences. That said, both Mail-in-a-Box and Cloud-in-a-Box work just fine independently as well.
 
-Cloud-in-a-Box works only on Ubuntu 24 (Noble) and Ubuntu 22 (Jammy).
+Cloud-in-a-Box works only on Ubuntu 26 (Resolute) and Ubuntu 24 (Noble).
 
 
 ## Integration support with Mail-in-a-Box LDAP
@@ -32,9 +32,9 @@ Note that Mail-in-a-Box LDAP is a fork of Mail-in-a-Box that supports LDAP for u
 
 ## Installation
 
-1. on a fresh Ubuntu 24 (Noble) or Ubuntu 22 (Jammy) system, install git `apt-get install git`
+1. on a fresh Ubuntu 26 (Resolute) or Ubuntu 24 (Noble) system, install git `apt-get install git`
 2. from your home directory, clone the source code repo `git clone https://github.com/downtownallday/cloudinabox.git cloudinabox`
-3. checkout the latest version `git checkout v0.10`
+3. checkout the latest version `git checkout v0.11`
 4. set your working directory to cloudinabox `cd cloudinabox`
 5. run setup as root `sudo setup/start.sh` (or `sudo ehdd/start-encrypted.sh` to use encryption-at-rest)
 
@@ -81,6 +81,8 @@ Ubuntu upgrades are essential to keep up with security fixes. Carefully follow t
 - If you're currently on *Ubuntu 20 (Focal)*: Upgrade Nextcloud to version 25, then upgrade Ubuntu to Jammy, then checkout Cloud-in-a-Box v0.10 and run setup, then follow the steps for Jammy below.
 
 - If you're currently on *Ubuntu 22 (Jammy)*: Upgrade Nextcloud to version 30, then upgrade Ubuntu to Noble, then checkout the latest Cloud-in-a-Box and run setup.
+
+- If you're currently on *Ubuntu 24 (Noble)*: Upgrade Nextcloud to version 33, then upgrade Ubuntu to Resolute, then checkout the latest Cloud-in-a-Box and run setup.
 
 Ubuntu upgrades may be done in-place using the system's OS upgrade program /usr/bin/do-release-upgrade, or from backup files (restored into /home/user-data) on a fresh system.
 
